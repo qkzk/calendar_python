@@ -13,6 +13,7 @@ each event is a dic and has the keys :
 
 '''
 
+import markdown
 import datetime
 from pprint import pprint
 
@@ -84,7 +85,7 @@ def get_date_from_line(line):
     ## Lundi 02 septembre   -----> 2019-09-02 00:00:00
 
     @param line: (str) a line from the .md file
-    @return: (datetime.datetime obj) a date
+    @return: (datetime.datetime obj) a datetime at midnight (ie a date)
     '''
     # new date
     date_str = line[3:]
@@ -135,7 +136,6 @@ def get_events_from_str(events_dic_str_from_lines):
             if len(first_string_list) > 1:
                 location = first_string_list[1]
             event = {
-                # "hours": get_hours(dt_key, hours),
                 "start": start,
                 "end": end,
                 "location": location,
@@ -149,11 +149,22 @@ def get_events_from_str(events_dic_str_from_lines):
                 event["colorId"] = student_class_colors[event["summary"]]
             if len(first_line) > 1:
                 description = '\n'.join(string_event[1:])
-                event["description"] = description.strip()
+                description = description.strip()
+                description_html = get_html(description)
+                event["description"] = description_html
             event_list.append(event)
         event_per_date[dt_key] = event_list
-        # break
     return event_per_date
+
+
+def get_html(description):
+    '''
+    format a string from markdown to html
+    @param description: (str) mardkdown formated string
+    @return: (str) equivalent string in html format
+    '''
+    description_html = markdown.markdown(description)
+    return description_html
 
 
 def get_hours(dt_key, hours):
@@ -183,14 +194,8 @@ def get_hours(dt_key, hours):
     start_str = hours_list[0]
     end_str = hours_list[1]
 
-    start_list = start_str.split('h')
-    end_list = end_str.split('h')
-
-    start_hour = int(start_list[0])
-    start_minute = 0 if start_list[1] == '' else int(start_list[1])
-
-    end_hour = int(end_list[0])
-    end_minute = 0 if end_list[1] == '' else int(end_list[1])
+    start_hour, start_minute = get_hours_minute(start_str)
+    end_hour, end_minute = get_hours_minute(end_str)
 
     year = dt_key.year
     month = dt_key.month
@@ -203,6 +208,19 @@ def get_hours(dt_key, hours):
     end = {'dateTime': format_dt_for_event(end), 'timeZone': 'Europe/Paris'}
 
     return start, end
+
+
+def get_hours_minute(time_str):
+    '''
+    Extract an hour a minute from a string
+    we could use datetime.strptime but it's dirtier and quicker (to code)
+    @param time_str: (str) french time format : 8h35
+    @return: (tuple of int) (hour, minute) : (8, 35)
+    '''
+    time_list = time_str.split('h')
+    time_hour = int(time_list[0])
+    time_minute = 0 if time_list[1] == '' else int(time_list[1])
+    return time_hour, time_minute
 
 
 def format_dt_for_event(time_of_event):
@@ -234,23 +252,26 @@ def get_event_from_lines(file_lines):
             # it's a new day...
             events_list_from_day = []
             date_day = get_date_from_line(line)
-            # next line is blank
+            # next line must be blank
             line_nb += 2
             if line_nb >= nb_file_lines:
                 break
             line = file_lines[line_nb]
             while line.startswith('*'):
-
+                # we extract the events from the day
                 events_list_from_day.append([line.strip()])
                 line_nb += 1
                 line = file_lines[line_nb]
                 while line.startswith('  ') or line in ['\n', '\r\n']:
+                    # each description must be INSIDE the event so
+                    # spaces must be present at the beginning of the line
                     events_list_from_day[-1].append(line.strip())
                     line_nb += 1
                     line = file_lines[line_nb]
             events_dic_str_from_lines[date_day] = events_list_from_day
 
         line_nb += 1
+        # sunday is ommited if empty
     return events_dic_str_from_lines
 
 

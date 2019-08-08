@@ -11,7 +11,8 @@ dans un fichier .md.
 
 Il est le complément de [Cahier texte generator](https://github.com/qkzk/cahier_texte_generator).
 
-On l'appelle après avoir installé et crée les environnements virtuels avec :
+On l'appelle après avoir installé les requirements et crée les environnements
+virtuels avec :
 
 ```shell
 $ python3 calendar_python.py 5 36
@@ -32,9 +33,6 @@ Principe :
 
 
 # Incertitudes
-* peut-on formater directement les descriptions ? Ce serait pratique d'avoir
-    au moins des listes et du gras
-
 * est-ce que je vais vraiment gagner du temps ?
 * Quelle interface ? Script avec Q/R/Confirmations ou Interface graphique
     Idéalement accessible depuis els machines avec lesquelles j'édite donc
@@ -44,9 +42,9 @@ Principe :
 
 # TODO
 * gui / cli avec Q/R
-* formater les descriptions en html
 
 # DONE
+* formater les descriptions en html
 * créer un calendrier particulier pour l'appli
 * se connecter à un calendar et retrieve les événements
 * se connecter à un calendar et maj un événement
