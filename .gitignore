@@ -102,3 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# calendar python
+tokens
+token.pickle
+api_details
+calendar_python.log
+credentials.json
+quickstart.py
+event_ressources_rep.json
