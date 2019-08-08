@@ -1,19 +1,15 @@
-# Copyright 2018 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+'''
+---
+title: Calendar Python
+author: qkkz
+date: 2019/08/08
+description:
+'Lit un fichier .md formaté par cahier_texte_generator et ajoute les
+événements dans google calendar'
+---
+'''
 
-# [START calendar_quickstart]
-# from __future__ import print_function
+
 import logging
 import os
 import sys
@@ -26,7 +22,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from pprint import pprint
 import explore_md_file
-
+from calendar_id import PYTHON_LYCEE_ID
 
 # constants
 
@@ -64,7 +60,6 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 # Google Calendar settings
 TZ = pytz.timezone("Europe/Paris")
-PYTHON_LYCEE_ID = 'u79g8ba5vo6d8qnt20vebrqp8k@group.calendar.google.com'
 
 
 # variables
