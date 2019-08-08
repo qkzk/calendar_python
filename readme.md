@@ -53,3 +53,8 @@ Principe :
 * lire les événements d'un fichier md existant
 * màj les events
 * créer des events
+
+# Sources :
+
+* the usual suspects : stackoverflow, python docs, sam & max etc.
+* [google pi ref](https://developers.google.com/calendar/quickstart/python?authuser=2)
