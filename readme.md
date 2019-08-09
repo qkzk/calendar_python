@@ -38,10 +38,10 @@ Principe :
     Idéalement accessible depuis els machines avec lesquelles j'édite donc
     GUI possible
     CLI possible
-    Server Web encore plus difficile et compliqué
+    Server Web trop compliqué
 
 # TODO
-* gui / cli avec Q/R
+* gui avec Q/R
 
 # DONE
 * formater les descriptions en html
@@ -53,8 +53,9 @@ Principe :
 * lire les événements d'un fichier md existant
 * màj les events
 * créer des events
+* cli avec Q/R
 
 # Sources :
 
 * the usual suspects : stackoverflow, python docs, sam & max etc.
-* [google pi ref](https://developers.google.com/calendar/quickstart/python?authuser=2)
+* [google calendar API python ref](https://developers.google.com/calendar/quickstart/python?authuser=2)

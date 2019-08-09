@@ -28,6 +28,18 @@ import explore_md_file
 from calendar_id import PYTHON_LYCEE_ID
 
 # constants
+TEXT_COLORS = {
+    "PURPLE": '\033[95m',
+    "CYAN": '\033[96m',
+    "DARKCYAN": '\033[36m',
+    "BLUE": '\033[94m',
+    "GREEN": '\033[92m',
+    "YELLOW": '\033[93m',
+    "RED": '\033[91m',
+    "BOLD": '\033[1m',
+    "UNDERLINE": '\033[4m',
+    "END": '\033[0m',
+}
 
 # messages
 WARNING_MSG = """
@@ -36,8 +48,7 @@ Create your Google Calendar Events from a .md File.
 Warnings !
 
 1. The Google Calendar Events will be updated or created
-2. The .md file must be correctly formatted
-3. There's no other warnings after this message.
+2. The .md file must be correctly formatted or the application will crash
 
 """
 GET_PERIOD_MSG = "Please choose a period in [1-5] : "
@@ -52,9 +63,11 @@ Starting to explore the given week... please wait...
 
 """
 
-MD_CONTENT_MSG = "This is the content of the provided .md file :\n"
-INPUT_WARNING_MSG = """Do you want to continue ?
-Press (y) to continue, (n) to exit or another key to provide another file : """
+MD_CONTENT_MSG = "This is the content of the .md file :\n"
+INPUT_WARNING_MSG = """LAST WARNING !
+
+Do you want to continue ?
+Press (y) to continue, (n) to exit or another key to look for another file : """
 QUICK_EXIT_MSG = "That's ok, exiting"
 STARTING_APPLICATION_MSG = 'Calendar Python started !'
 CONFIRMATION_MSG = """
@@ -68,10 +81,8 @@ LOGFILE = 'calendar_python.log'
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-
 # Google Calendar settings
 TZ = pytz.timezone("Europe/Paris")
-
 
 # variables
 text_description_example = '''<ul><li>voila voila</li><li>revoila</li></ul>'''
@@ -397,6 +408,10 @@ def get_weeks_from_period(period_path):
     return week_number_list
 
 
+def color_text(text, color="BOLD"):
+    return TEXT_COLORS[color] + text + TEXT_COLORS["END"]
+
+
 def display_md_content(path):
     '''
     Print the content of the md file to the console.
@@ -405,7 +420,7 @@ def display_md_content(path):
     '''
     with open(path, mode='r') as mdfile:
         print(MD_CONTENT_MSG)
-        print(mdfile.read())
+        print(color_text(mdfile.read(), "BOLD"))
 
 
 def ask_path_to_user(reset_path=False):
@@ -415,7 +430,7 @@ def ask_path_to_user(reset_path=False):
     @return: (str) the path to the md file
     '''
     global period_path
-    print(WARNING_MSG)
+    print(color_text(WARNING_MSG, "DARKCYAN"))
 
     if reset_path or len(sys.argv) == 1:
         # no parameters were given by the user
@@ -437,7 +452,7 @@ def ask_path_to_user(reset_path=False):
 
     # we now have a complete path
     path = default_path_md.format(period_number, week_number)
-    print(path)
+    print(color_text(path + "\n", "YELLOW"))
 
     # does the user wants to see the events that will be created ?
     input_print_md = input(INPUT_PRINT_MD_FILE)
@@ -460,7 +475,9 @@ def warn_and_get_path():
     while path == '' or input_warning != 'y':
         path = ask_path_to_user(reset_path=reset_path)
         # does the user wants to continue ? (that's the last warning)
-        input_warning = input(INPUT_WARNING_MSG)
+        input_warning = input(
+            color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD")
+        )
         reset_path = True
         if input_warning in ['n', 'N']:
             print(QUICK_EXIT_MSG)
@@ -530,7 +547,7 @@ def create_or_update_week_events():
     logging.basicConfig(format='%(asctime)s %(message)s',
                         filename=LOGFILE, level=logging.DEBUG)
 
-    print(STARTING_APPLICATION_MSG)
+    print(color_text(STARTING_APPLICATION_MSG, "DARKCYAN"))
     logging.warning(STARTING_APPLICATION_MSG)
 
     if not os.path.exists(path):
@@ -540,7 +557,7 @@ def create_or_update_week_events():
 
     print(EXPLORING_MSG)
     test_uploads_from_md(path)
-    print(CONFIRMATION_MSG)
+    print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 
 if __name__ == '__main__':
