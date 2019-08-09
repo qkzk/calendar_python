@@ -10,17 +10,20 @@ description:
 '''
 
 
-import logging
+from os import listdir
+from os.path import isfile, join
 import os
 import sys
-import pytz
+import logging
 import datetime
 import pickle
 import os.path
+import pytz
+from pprint import pprint
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from pprint import pprint
+
 import explore_md_file
 from calendar_id import PYTHON_LYCEE_ID
 
@@ -37,21 +40,29 @@ Warnings !
 3. There's no other warnings after this message.
 
 """
+GET_PERIOD_MSG = "Please choose a period in [1-5] : "
+GET_WEEK_MSG = "Please choose a week in {} : "
 WRONG_PATH_MSG = """
 Please provide a period number [1:5]
 and a correct week number for that period
 """
+INPUT_PRINT_MD_FILE = "Do you want to see the content of the file (y/N) ? "
 EXPLORING_MSG = """
 Starting to explore the given week... please wait...
 
 """
+
+MD_CONTENT_MSG = "This is the content of the provided .md file :\n"
+INPUT_WARNING_MSG = """Do you want to continue ?
+Press (y) to continue, (n) to exit or another key to provide another file : """
+QUICK_EXIT_MSG = "That's ok, exiting"
+STARTING_APPLICATION_MSG = 'Calendar Python started !'
 CONFIRMATION_MSG = """
 DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 
 """
-INPUT_WARNING_MSG = "Do you want to continue (y/N) : ? "
-QUICK_EXIT_MSG = "That's ok, exiting"
-STARTING_APPLICATION_MSG = 'Calendar Python started !'
+
+# logs etc.
 LOGFILE = 'calendar_python.log'
 
 # If modifying these scopes, delete the file token.pickle.
@@ -64,8 +75,13 @@ TZ = pytz.timezone("Europe/Paris")
 
 # variables
 text_description_example = '''<ul><li>voila voila</li><li>revoila</li></ul>'''
-default_path_md = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_{}/semaine_{}.md"
+# Example path, for testing
+# default_path_md = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_{}/semaine_{}.md"
+# Real path
 
+period_list = range(1, 6)
+period_path = "/home/quentin/gdrive/cours/git_cours/cours/2019/periode_{}/"
+default_path_md = period_path + "semaine_{}.md"
 
 # GOOGLE API FUNCTIONS
 
@@ -352,6 +368,106 @@ def create_event(event_details=None, service=None):
     logging.warning(creation_event_msg)
 
 
+def extract_number_from_path(week_md_filename):
+    '''
+    Extract the number from a week .md filename
+
+    "semaine_36.md"   ----> 36
+    "semaine_1.md"    ----1 1
+
+    @param week_md_filename: (str) the name of the md file
+    @return: (int)
+    '''
+    week_number = int(week_md_filename[:-3].split("_")[1])
+    return week_number
+
+
+def get_weeks_from_period(period_path):
+    '''
+    Get the week numbers from a given period path
+    List all the week from path
+    @param period_path: (str) the path to the period folder
+    @return: (list of int) the list of the weeks in that period
+    '''
+    week_dirs_list = [f for f in listdir(period_path)
+                      if isfile(join(period_path, f))]
+
+    week_number_list = sorted(list(map(extract_number_from_path,
+                                       week_dirs_list)))
+    return week_number_list
+
+
+def display_md_content(path):
+    '''
+    Print the content of the md file to the console.
+    @param: (path) the path to the md file
+    @return: (None)
+    '''
+    with open(path, mode='r') as mdfile:
+        print(MD_CONTENT_MSG)
+        print(mdfile.read())
+
+
+def ask_path_to_user(reset_path=False):
+    '''
+    Create the path from the args and ask the user what he wants to do.
+    @param reset_path: (bool) do we have to reset the path ?
+    @return: (str) the path to the md file
+    '''
+    global period_path
+    print(WARNING_MSG)
+
+    if reset_path or len(sys.argv) == 1:
+        # no parameters were given by the user
+        period_number = -1
+        while period_number not in period_list:
+            period_number = int(input(GET_PERIOD_MSG))
+        period_path = period_path.format(period_number)
+        week_dirs_list = get_weeks_from_period(period_path)
+        week_number = -1
+        while week_number not in week_dirs_list:
+            week_number = int(input(GET_WEEK_MSG.format(week_dirs_list)))
+
+    else:
+        # the user has provided at least a parameter
+        if len(sys.argv) < 2:
+            raise ValueError(WRONG_PATH_MSG)
+        period_number = int(sys.argv[1])
+        week_number = int(sys.argv[2])
+
+    # we now have a complete path
+    path = default_path_md.format(period_number, week_number)
+    print(path)
+
+    # does the user wants to see the events that will be created ?
+    input_print_md = input(INPUT_PRINT_MD_FILE)
+    if input_print_md == 'y':
+        display_md_content(path)
+    return path
+
+
+def warn_and_get_path():
+    '''
+    Warn the user about what's he's going to do and return the path provided
+    by the user.
+    If no path is provided in the args, keep asking the user for a new one.
+
+    @return: (str) the path to the md file
+    '''
+    path = ''
+    reset_path = False
+    input_warning = ''
+    while path == '' or input_warning != 'y':
+        path = ask_path_to_user(reset_path=reset_path)
+        # does the user wants to continue ? (that's the last warning)
+        input_warning = input(INPUT_WARNING_MSG)
+        reset_path = True
+        if input_warning in ['n', 'N']:
+            print(QUICK_EXIT_MSG)
+            exit(-1)
+    return path
+
+
 def test_functions():
     """
     Used to test some functions
@@ -407,20 +523,9 @@ def create_or_update_week_events():
     @return: None
 
     """
-    # warnings
-    print(WARNING_MSG)
-    if len(sys.argv) < 2:
-        raise ValueError(WRONG_PATH_MSG)
-    period_number = int(sys.argv[1])
-    week_number = int(sys.argv[2])
-
-    path = default_path_md.format(period_number, week_number)
-
-    print(path)
-    input_warning = input(INPUT_WARNING_MSG)
-    if input_warning != 'y':
-        print(QUICK_EXIT_MSG)
-        exit(-1)
+    # get the path from the user, provided as args or not.
+    path = warn_and_get_path()
+    # if isn't exited yet, we continue.
 
     logging.basicConfig(format='%(asctime)s %(message)s',
                         filename=LOGFILE, level=logging.DEBUG)

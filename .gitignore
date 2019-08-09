@@ -106,6 +106,8 @@ venv.bak/
 # calendar python
 tokens
 token.pickle
+token*
+token.pickle.*
 api_details
 calendar_python.log
 credentials.json
