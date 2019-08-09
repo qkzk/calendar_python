@@ -53,7 +53,7 @@ Principe :
 * lire les événements d'un fichier md existant
 * màj les events
 * créer des events
-* cli avec Q/R
+* cli avec Q/R et des couleurs
 
 # Sources :
 
