@@ -42,6 +42,26 @@ TEXT_COLORS = {
 }
 
 # messages
+WELCOME_MSG = "welcome to..."
+BANNER = """
+########  ##    ## ######## ##     ##  #######  ##    ##
+##     ##  ##  ##     ##    ##     ## ##     ## ###   ##
+##     ##   ####      ##    ##     ## ##     ## ####  ##
+########     ##       ##    ######### ##     ## ## ## ##
+##           ##       ##    ##     ## ##     ## ##  ####
+##           ##       ##    ##     ## ##     ## ##   ###
+##           ##       ##    ##     ##  #######  ##    ##
+
+
+ ######     ###    ##       ######## ##    ## ########     ###    ########
+##    ##   ## ##   ##       ##       ###   ## ##     ##   ## ##   ##     ##
+##        ##   ##  ##       ##       ####  ## ##     ##  ##   ##  ##     ##
+##       ##     ## ##       ######   ## ## ## ##     ## ##     ## ########
+##       ######### ##       ##       ##  #### ##     ## ######### ##   ##
+##    ## ##     ## ##       ##       ##   ### ##     ## ##     ## ##    ##
+ ######  ##     ## ######## ######## ##    ## ########  ##     ## ##     ##
+"""
+
 WARNING_MSG = """
 Create your Google Calendar Events from a .md File.
 
@@ -469,6 +489,8 @@ def warn_and_get_path():
 
     @return: (str) the path to the md file
     '''
+    print(color_text(WELCOME_MSG, "DARKCYAN"))
+    print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
     path = ''
     reset_path = False
     input_warning = ''
