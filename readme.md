@@ -4,6 +4,20 @@ author: qkzk
 date: 2019/08/08
 ---
 
+# Exécution simple :
+
+~~~
+$ calpy
+~~~
+
+ou
+
+~~~
+$ calpy 1 36
+~~~
+
+Utilise un alias vers le fichier `calpy.sh`
+
 # Mettre à jour Calendar avec les données du cahier de texte
 
 Ce programme est de met à jour Google Calendar avec les événements indiqués
