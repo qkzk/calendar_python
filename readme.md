@@ -4,7 +4,16 @@ author: qkzk
 date: 2019/08/08
 ---
 
-# Exécution simple :
+# How to
+
+## setup
+
+~~~
+$ activate
+$ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib markdown
+~~~
+
+## lancer :
 
 ~~~
 $ calpy
@@ -17,6 +26,7 @@ $ calpy 1 36
 ~~~
 
 Utilise un alias vers le fichier `calpy.sh`
+alias calpy="~/scripts/calpy.sh"
 
 # Mettre à jour Calendar avec les données du cahier de texte
 
