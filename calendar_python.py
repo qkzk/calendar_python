@@ -338,6 +338,7 @@ def test_uploads_from_md(path, service=None):
     if service == None:
         service = build_service()
     events = explore_md_file.extract_events_from_file(path)
+    # input("press ctrl + C to abort ")
     for event_dic in events:
         # pprint(event)
         existing_event = event_already_have_id(event_dic, service)
@@ -460,8 +461,21 @@ def ask_path_to_user(reset_path=False):
         period_path = period_path.format(period_number)
         week_dirs_list = get_weeks_from_period(period_path)
         week_number = -1
-        while week_number not in week_dirs_list:
-            week_number = int(input(GET_WEEK_MSG.format(week_dirs_list)))
+        # while week_number not in week_dirs_list:
+        #     week_number = int(input(GET_WEEK_MSG.format(week_dirs_list)))
+        while True:
+            inputed_weeks = input(GET_WEEK_MSG.format(week_dirs_list))
+            if " " in inputed_weeks:
+                mode = "multi_weeks"
+                week_list = [int(number) for number in inputed_weeks.split(' ')]
+                break
+
+            else:
+                week_number = int(inputed_weeks)
+            if week_number in week_dirs_list:
+                mode = "solo_week"
+                week_list = [week_number]
+                break
 
     else:
         # the user has provided at least a parameter
@@ -469,16 +483,24 @@ def ask_path_to_user(reset_path=False):
             raise ValueError(WRONG_PATH_MSG)
         period_number = int(sys.argv[1])
         week_number = int(sys.argv[2])
+        mode = "args_provided"
 
+        week_list = [week_number]
+
+    print(color_text(mode, "DARKCYAN"))
     # we now have a complete path
-    path = default_path_md.format(period_number, week_number)
-    print(color_text(path + "\n", "YELLOW"))
+    path_list = []
+    for week_number in week_list:
+        path = default_path_md.format(period_number, week_number)
+        print(color_text(path + "\n", "YELLOW"))
+        path_list.append(path)
 
     # does the user wants to see the events that will be created ?
     input_print_md = input(INPUT_PRINT_MD_FILE)
     if input_print_md == 'y':
-        display_md_content(path)
-    return path
+        for path in path_list:
+            display_md_content(path)
+    return path_list
 
 
 def warn_and_get_path():
@@ -491,11 +513,11 @@ def warn_and_get_path():
     '''
     print(color_text(WELCOME_MSG, "DARKCYAN"))
     print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
-    path = ''
+    path_list = ''
     reset_path = False
     input_warning = ''
-    while path == '' or input_warning != 'y':
-        path = ask_path_to_user(reset_path=reset_path)
+    while path_list == '' or input_warning != 'y':
+        path_list = ask_path_to_user(reset_path=reset_path)
         # does the user wants to continue ? (that's the last warning)
         input_warning = input(
             color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD")
@@ -505,8 +527,9 @@ def warn_and_get_path():
             print(QUICK_EXIT_MSG)
             exit(-1)
     print(color_text("We have a path !", "YELLOW"))
-    print(color_text(path, "YELLOW"))
-    return path
+    for path in path_list:
+        print(color_text(path, "YELLOW"))
+    return path_list
 
 
 def test_functions():
@@ -565,7 +588,7 @@ def create_or_update_week_events():
 
     """
     # get the path from the user, provided as args or not.
-    path = warn_and_get_path()
+    path_list = warn_and_get_path()
     # if isn't exited yet, we continue.
 
     logging.basicConfig(format='%(asctime)s %(message)s',
@@ -574,14 +597,27 @@ def create_or_update_week_events():
     print(color_text(STARTING_APPLICATION_MSG, "DARKCYAN"))
     logging.warning(STARTING_APPLICATION_MSG)
 
-    if not os.path.exists(path):
-        print(path)
-        logging.debug('File not found : {}'.format(path))
-        raise FileNotFoundError(WRONG_PATH_MSG)
+    for path in path_list:
+        if not os.path.exists(path):
+            print(path)
+            logging.debug('File not found : {}'.format(path))
+            raise FileNotFoundError(WRONG_PATH_MSG)
 
-    print(EXPLORING_MSG)
-    test_uploads_from_md(path)
-    print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
+        print(EXPLORING_MSG)
+        test_uploads_from_md(path)
+        print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
+
+
+# def arg_parser():
+#     if len(sys.argv) == 1:
+#         # no argument provided, single week mode
+#         mode = "no_args"
+#         path = None
+#     else:
+#         if sys.argv[1] in range(1, 6):
+#             mode = "single_week"
+#             path = None
+#     return mode, path_list
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ import pytz
 
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
-traduction = {
+traduction_day = {
     # on pourrait utiliser des locales et traduire automatiquement...
     "Lundi":     "Monday",
     "Mardi":     "Tuesday",
@@ -30,6 +30,8 @@ traduction = {
     "Vendredi":  "Friday",
     "Samedi":    "Saturday",
     "Dimanche":  "Sunday",
+}
+traduction_month = {
     "janvier":   "January",
     "février":   "February",
     "mars":      "March",
@@ -44,6 +46,13 @@ traduction = {
     "décembre":  "December",
 }
 
+monthes_end_year = ["January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July", ]
 
 colors = {
     # rainbow order
@@ -108,6 +117,7 @@ def get_date_from_line(line):
     '''
     Extract the date from a line :
     ## Lundi 02 septembre   -----> 2019-09-02 00:00:00
+    ## Lundi 02 mai         -----> 2020-05-02 00:00:00
 
     @param line: (str) a line from the .md file
     @return: (datetime.datetime obj) a datetime at midnight (ie a date)
@@ -116,14 +126,36 @@ def get_date_from_line(line):
     date_str = line[3:]
     date_list = date_str.strip().split(' ')
     # print(date_list)
-    day_of_the_week = traduction[date_list[0]]
+    day_of_the_week = traduction_day[date_list[0]]
     day_nb = date_list[1]
-    month = traduction[date_list[2]]
+    month = traduction_month[date_list[2]]
+    year = get_current_year(month)
     date_str_strp = '-'.join([month, day_nb])
-    date_str_strp = '2019-' + date_str_strp
+    date_str_strp = str(year) + '-' + date_str_strp
     date_day = datetime.datetime.strptime(date_str_strp, '%Y-%B-%d')
 
     return date_day
+
+
+def get_current_year(md_month):
+    '''
+    Return the correct year.
+    The year is either the current year or the next.
+    It's the next only if we're setting events for
+    after january 1st during the beggining of the current school year
+    ie : today is 2019/09/31 and event is 2020/01/31
+
+    @param md_month: (str)
+    @return: (int)
+    '''
+    # TODO : ugly
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+    if md_month in monthes_end_year and month in range(8, 13):
+        # is it before or after the end of civil year ?
+        year += 1
+    return year
 
 
 def get_events_from_str(events_dic_str_from_lines):
