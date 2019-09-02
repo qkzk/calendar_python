@@ -17,6 +17,8 @@ import markdown
 import datetime
 from pprint import pprint
 
+import pytz
+
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
 traduction = {
@@ -59,11 +61,34 @@ colors = {
 }
 
 student_class_colors = {
-    "isn": "5",
-    "2nde 3": "7",
-    "truc": "3",
-    "%": "8"
+    "5": ["ISN", ],
+    "4": ["NSI", ],
+    "7": ["2nd"],
+    "8": ["aero", ],
+    "1": ["ap", "orientation"],
+    "3": ["l2s3", "l1s2", "l2s4", "croqmaths", "imt"],
+    "2": ["réunion", "reunion", "conseil", "PP", "default"],
 }
+
+
+def get_event_color(string):
+    '''
+    Search for keywords in the description of the event.
+    Return the color number (string) if something is found
+
+    @param string: (str) the description of the event
+    @return: (str or None) the
+    '''
+    words = string.lower().split(' ')
+    print(words)
+    for nb, tags in student_class_colors.items():
+        for tag in tags:
+            for word in words:
+                if tag.lower() in word:
+                    # print(f"{tag} in {words} --> {nb}")
+                    return nb
+    # print("nothing found")
+    return None
 
 
 def explore_md_file(path):
@@ -145,8 +170,10 @@ def get_events_from_str(events_dic_str_from_lines):
                 event["summary"] = student_class
             else:
                 event["summary"] = '%'
-            if event["summary"] in student_class_colors:
-                event["colorId"] = student_class_colors[event["summary"]]
+            color_retrieved = get_event_color(event["summary"])
+            if color_retrieved:
+                event["colorId"] = color_retrieved
+                print(event["colorId"])
             if len(first_line) > 1:
                 description = '\n'.join(string_event[1:])
                 description = description.strip()
@@ -223,11 +250,33 @@ def get_hours_minute(time_str):
     return time_hour, time_minute
 
 
+def get_offset_at_given_date(time_of_event):
+    '''
+    Get the offset (1 or 2 at a give date)
+
+    During summer Europe/Paris is +2 hours offset from UTC
+    During summer Europe/Paris is +1 hours offset from UTC
+
+    @param time_of_event: (datetime)
+    @return: (int)
+    '''
+    cet = pytz.timezone('CET')
+    offset_delta = cet.utcoffset(time_of_event)
+    offset_hours = int(offset_delta.total_seconds()/3600)
+    return offset_hours
+
+
 def format_dt_for_event(time_of_event):
     '''
     '2019-08-09T15:00:00+02:00'
+
+    The date is correctly offseted (+1 or +2 according to offset)
     '''
-    time_format = "%Y-%m-%dT%H:%M:00+02:00"
+
+    offset = get_offset_at_given_date(time_of_event)
+
+    # time_format = "%Y-%m-%dT%H:%M:00+02:00"
+    time_format = f"%Y-%m-%dT%H:%M:00+0{offset}:00"
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
@@ -293,8 +342,9 @@ def extract_events_from_file(path=None):
     '''
     if not path:
         # example mode
+        print("PATH NOT PROVIDED USING DEFAULT PATH")
         path = example_week_md_path
-    file_lines = explore_md_file(example_week_md_path)
+    file_lines = explore_md_file(path)
     # pprint(file_lines)
     events_dic_str_from_lines = get_event_from_lines(file_lines)
     # pprint(events_dic_str_from_lines)
@@ -302,9 +352,12 @@ def extract_events_from_file(path=None):
     # pprint(events_from_str)
     nested_events = list(events_from_str.values())
     flat_events = [item for sublist in nested_events for item in sublist]
+    print(flat_events)
     return flat_events
 
 
 if __name__ == '__main__':
-    events = extract_events_from_file()
-    pprint(events)
+    # events = extract_events_from_file()
+    # pprint(events)
+
+    print(get_event_color("2ND9"))

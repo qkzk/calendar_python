@@ -504,6 +504,8 @@ def warn_and_get_path():
         if input_warning in ['n', 'N']:
             print(QUICK_EXIT_MSG)
             exit(-1)
+    print(color_text("We have a path !", "YELLOW"))
+    print(color_text(path, "YELLOW"))
     return path
 
 
