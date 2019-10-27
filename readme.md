@@ -1,7 +1,7 @@
 ---
 title : Cahier de texte vers Calendar
 author: qkzk
-date: 2019/08/08
+date: 2019/09/02
 ---
 
 # How to
@@ -10,7 +10,7 @@ date: 2019/08/08
 
 ~~~
 $ activate
-$ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib markdown
+$ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib markdown pytz
 ~~~
 
 ## lancer :
@@ -39,10 +39,10 @@ On l'appelle après avoir installé les requirements et crée les environnements
 virtuels avec :
 
 ```shell
-$ python3 calendar_python.py 5 36
+$ python3 calendar_python.py 1 36
 ```
 
-où `5` est le numéro d'une période et `36` le numéro d'une semaine de la
+où `1` est le numéro d'une période et `36` le numéro d'une semaine de la
 période.
 
 ---
@@ -78,6 +78,8 @@ Principe :
 * màj les events
 * créer des events
 * cli avec Q/R et des couleurs
+* multiple weeks mode. $ calpy, input a period, input multiple weeks separated
+  by spaces
 
 # Sources :
 

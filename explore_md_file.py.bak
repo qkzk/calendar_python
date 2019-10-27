@@ -71,12 +71,11 @@ colors = {
 
 student_class_colors = {
     "5": ["ISN", ],
-    "6": ["NSI", ],
-    "1": ["ap", "orientation", "AP"],
+    "4": ["NSI", ],
     "7": ["2nd"],
     "8": ["aero", ],
+    "1": ["ap", "orientation"],
     "3": ["l2s3", "l1s2", "l2s4", "croqmaths", "imt"],
-    "10": ["cdr", "CDR"],
     "2": ["réunion", "reunion", "conseil", "PP", "default"],
 }
 
@@ -357,7 +356,7 @@ def get_event_from_lines(file_lines):
     return events_dic_str_from_lines
 
 
-def extract_events_from_file(path=None, verbose=True):
+def extract_events_from_file(path=None):
     '''
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
@@ -385,8 +384,7 @@ def extract_events_from_file(path=None, verbose=True):
     # pprint(events_from_str)
     nested_events = list(events_from_str.values())
     flat_events = [item for sublist in nested_events for item in sublist]
-    if verbose:
-        print(flat_events)
+    print(flat_events)
     return flat_events
 
 
