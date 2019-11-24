@@ -1,7 +1,9 @@
 #!/bin/sh
 
 # get the current dir
-SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+CURRPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+SCRIPTATH="/home/quentin/gdrive/dev/python/boulot_utils/calendar_python"
+VENVPATH="/run/media/quentin/data/venv/calendar_python_venv"
 
 # get the message
 if [[ $# > 1 ]]; then
@@ -22,11 +24,18 @@ fi
 # echo $msg
 #
 # go to dir
-cd /home/quentin/gdrive/dev/python/boulot_utils/calendar_python/
+
+# old dir with venv
+# cd /home/quentin/gdrive/dev/python/boulot_utils/calendar_python/
+
+# new dir without venv
+cd $VENVPATH
 
 # activate virtual environnement
 source venv/bin/activate
 
+# go where the script is
+cd $SCRIPTATH
 # exec python script
 if [[ $# > 1 ]]; then
   # without
@@ -39,4 +48,4 @@ fi
 deactivate
 
 # back to the directory we came from
-cd $SCRIPTPATH
+cd $CURRPATH
