@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh
 
 # get the current dir
 CURRPATH="$( cd "$(dirname "$0")" ; pwd -P )"
