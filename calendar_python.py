@@ -111,7 +111,7 @@ text_description_example = '''<ul><li>voila voila</li><li>revoila</li></ul>'''
 # Real path
 
 period_list = range(1, 6)
-period_path = "/home/quentin/gdrive/cours/git_cours/cours/2019/periode_{}/"
+period_path = "/home/quentin/gdrive/cours/git_cours/cours/2020/periode_{}/"
 default_path_md = period_path + "semaine_{}.md"
 
 # GOOGLE API FUNCTIONS
@@ -322,7 +322,8 @@ def update_event(event_details,
 
     logging.basicConfig(format='%(asctime)s %(message)s',
                         filename=LOGFILE, level=logging.DEBUG)
-    update_event_msg = "updated the event: {}".format(updated_event["htmlLink"])
+    update_event_msg = "updated the event: {}".format(
+        updated_event["htmlLink"])
     print(update_event_msg)
     logging.warning(update_event_msg)
 
@@ -467,7 +468,8 @@ def ask_path_to_user(reset_path=False):
             inputed_weeks = input(GET_WEEK_MSG.format(week_dirs_list))
             if " " in inputed_weeks:
                 mode = "multi_weeks"
-                week_list = [int(number) for number in inputed_weeks.split(' ')]
+                week_list = [int(number)
+                             for number in inputed_weeks.split(' ')]
                 break
 
             else:
