@@ -73,7 +73,7 @@ student_class_colors = {
     "5": ["ISN", ],
     "6": ["NSI", ],
     "1": ["ap", "orientation", "AP"],
-    "7": ["2nd"],
+    "7": ["2nd", "train"],
     "8": ["aero", ],
     "3": ["l2s3", "l1s2", "l2s4", "croqmaths", "imt"],
     "10": ["cdr", "CDR"],
@@ -264,7 +264,8 @@ def get_hours(dt_key, hours):
     start = datetime.datetime(year, month, day, start_hour, start_minute)
     end = datetime.datetime(year, month, day, end_hour, end_minute)
 
-    start = {'dateTime': format_dt_for_event(start), 'timeZone': 'Europe/Paris'}
+    start = {'dateTime': format_dt_for_event(
+        start), 'timeZone': 'Europe/Paris'}
     end = {'dateTime': format_dt_for_event(end), 'timeZone': 'Europe/Paris'}
 
     return start, end
