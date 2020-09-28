@@ -2,6 +2,7 @@
 title : Cahier de texte vers Calendar
 author: qkzk
 date: 2019/09/02
+
 ---
 
 # How to
@@ -57,17 +58,22 @@ Principe :
 
 
 # Incertitudes
-* est-ce que je vais vraiment gagner du temps ?
-* Quelle interface ? Script avec Q/R/Confirmations ou Interface graphique
+
+- [x] est-ce que je vais vraiment gagner du temps ?
+* [ ] Quelle interface ? Script avec Q/R/Confirmations ou Interface graphique
+*
     Idéalement accessible depuis els machines avec lesquelles j'édite donc
-    GUI possible
-    CLI possible
-    Server Web trop compliqué
+
+    - [ ] GUI possible
+    - [x] CLI possible
+    - [ ] Server Web trop compliqué
 
 # TODO
+
 * gui avec Q/R
 
 # DONE
+
 * formater les descriptions en html
 * créer un calendrier particulier pour l'appli
 * se connecter à un calendar et retrieve les événements
@@ -80,6 +86,7 @@ Principe :
 * cli avec Q/R et des couleurs
 * multiple weeks mode. $ calpy, input a period, input multiple weeks separated
   by spaces
+* multiple weeks from same period from command line
 
 # Sources :
 
