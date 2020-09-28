@@ -8,25 +8,10 @@ VENVPATH="/run/media/quentin/data/venv/calendar_python_venv"
 # get the message
 if [[ $# > 1 ]]; then
   #statements
-  period=$1
-  week=$2
-  echo "Calendar Python with period $period and week $week."
+  echo "Calendar Python with period and week."
 else
   echo "Calendar Python without arguments"
 fi
-#
-# if [[ $# > 0 ]]; then
-#   #statements
-#   msg=${@}
-# else
-#   msg='autocommit'
-# fi
-# echo $msg
-#
-# go to dir
-
-# old dir with venv
-# cd /home/quentin/gdrive/dev/python/boulot_utils/calendar_python/
 
 # new dir without venv
 cd $VENVPATH
@@ -39,7 +24,7 @@ cd $SCRIPTATH
 # exec python script
 if [[ $# > 1 ]]; then
   # without
-  python3 calendar_python.py $period $week
+  python3 calendar_python.py "$@"
 else
   python3 calendar_python.py
 fi

@@ -479,15 +479,14 @@ def ask_path_to_user(reset_path=False):
                 week_list = [week_number]
                 break
 
+    elif len(sys.argv) < 2:
+        # wrong number of arguments
+        raise ValueError(WRONG_PATH_MSG)
     else:
         # the user has provided at least a parameter
-        if len(sys.argv) < 2:
-            raise ValueError(WRONG_PATH_MSG)
-        period_number = int(sys.argv[1])
-        week_number = int(sys.argv[2])
         mode = "args_provided"
-
-        week_list = [week_number]
+        period_number = int(sys.argv[1])
+        week_list = convert_week_numbers(sys.argv[2:])
 
     print(color_text(mode, "DARKCYAN"))
     # we now have a complete path
@@ -503,6 +502,16 @@ def ask_path_to_user(reset_path=False):
         for path in path_list:
             display_md_content(path)
     return path_list
+
+
+def convert_week_numbers(week_numbers: list) -> list:
+    '''
+    split the week numbers into a list of integers
+    ["1", "2", "3"] -> [1, 2, 3]
+    @param week_numbers: (str) a string containing the week numbers
+    @return: (list of int) those numbers as int in a list
+    '''
+    return list(map(int, week_numbers))
 
 
 def warn_and_get_path():
@@ -608,18 +617,6 @@ def create_or_update_week_events():
         print(EXPLORING_MSG)
         test_uploads_from_md(path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
-
-
-# def arg_parser():
-#     if len(sys.argv) == 1:
-#         # no argument provided, single week mode
-#         mode = "no_args"
-#         path = None
-#     else:
-#         if sys.argv[1] in range(1, 6):
-#             mode = "single_week"
-#             path = None
-#     return mode, path_list
 
 
 if __name__ == '__main__':
