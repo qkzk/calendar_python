@@ -3,7 +3,7 @@
 # get the current dir
 CURRPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPTATH="/home/quentin/gdrive/dev/python/boulot_utils/calendar_python"
-VENVPATH="/run/media/quentin/data/venv/calendar_python_venv"
+VENVPATH="/home/quentin/ntfs/venv/calendar_python_venv"
 
 # get the message
 if [[ $# > 1 ]]; then
@@ -21,12 +21,13 @@ source venv/bin/activate
 
 # go where the script is
 cd $SCRIPTATH
+
 # exec python script
 if [[ $# > 1 ]]; then
   # without
-  python3 calendar_python.py "$@"
+  python calendar_python.py "$@"
 else
-  python3 calendar_python.py
+  python calendar_python.py
 fi
 
 # deactivate virtual environnement
