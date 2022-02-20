@@ -27,6 +27,7 @@ from googleapiclient.discovery import build
 
 import explore_md_file
 from calendar_id import PYTHON_LYCEE_ID
+from arguments_parser import read_arguments
 
 # constants
 TEXT_COLORS = {
@@ -609,6 +610,8 @@ def create_or_update_week_events():
     @return: None
 
     """
+    arguments = read_arguments()
+    print(arguments)
     # get the path from the user, provided as args or not.
     path_list = warn_and_get_path()
     # if isn't exited yet, we continue.
