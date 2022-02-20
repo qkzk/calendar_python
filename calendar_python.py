@@ -10,6 +10,7 @@ description:
 """
 
 
+import argparse
 import datetime
 import logging
 import os
@@ -335,13 +336,9 @@ def update_event(
     logging.warning(update_event_msg)
 
 
-def test_uploads_from_md(path, service=None):
+def sync_event_from_md(path, service=None):
     """
-    Create events from md file
-
-    Create events even if they exists... :(
-
-    desired behavior : only update if exists
+    Create or update events from md file
     """
     if service == None:
         service = build_service()
@@ -460,7 +457,7 @@ def display_md_content(path):
         print(color_text(mdfile.read(), "BOLD"))
 
 
-def ask_path_to_user(reset_path=False):
+def ask_path_to_user(arguments: argparse.Namespace, reset_path=False):
     """
     Create the path from the args and ask the user what he wants to do.
     @param reset_path: (bool) do we have to reset the path ?
@@ -499,10 +496,16 @@ def ask_path_to_user(reset_path=False):
     else:
         # the user has provided at least a parameter
         mode = "args_provided"
-        period_number = int(sys.argv[1])
-        week_list = convert_week_numbers(sys.argv[2:])
-
+        period_number = arguments.period_number
+        week_list = convert_week_numbers(arguments.week_numbers)
     print(color_text(mode, "DARKCYAN"))
+
+    return period_number, week_list
+
+
+def convert_numbers_to_path(
+    period_number: int, week_list: list[int], arguments: argparse.Namespace
+) -> list[str]:
     # we now have a complete path
     path_list = []
     for week_number in week_list:
@@ -511,10 +514,12 @@ def ask_path_to_user(reset_path=False):
         path_list.append(path)
 
     # does the user wants to see the events that will be created ?
-    input_print_md = input(INPUT_PRINT_MD_FILE)
-    if input_print_md == "y":
-        for path in path_list:
-            display_md_content(path)
+
+    if arguments.interactive or arguments.view_content:
+        input_print_md = input(INPUT_PRINT_MD_FILE)
+        if input_print_md == "y":
+            for path in path_list:
+                display_md_content(path)
     return path_list
 
 
@@ -528,7 +533,7 @@ def convert_week_numbers(week_numbers: list) -> list:
     return list(map(int, week_numbers))
 
 
-def warn_and_get_path():
+def warn_and_get_path(arguments: argparse.Namespace):
     """
     Warn the user about what's he's going to do and return the path provided
     by the user.
@@ -538,11 +543,39 @@ def warn_and_get_path():
     """
     print(color_text(WELCOME_MSG, "DARKCYAN"))
     print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
-    path_list = ""
+    path_list = []
     reset_path = False
     input_warning = ""
+
+    # 1st case : wrong arguments from argparse
+    if (
+        arguments.interactive
+        or arguments.period_number is None
+        or arguments.week_numbers == []
+    ):
+
+        print("Interactive mode")
+        path_list = interactive_mode(path_list, reset_path, input_warning, arguments)
+    else:
+        path_list = convert_numbers_to_path(
+            arguments.period_number, arguments.week_numbers, arguments
+        )
+        if not arguments.yes:
+            path_list = interactive_mode(
+                path_list, reset_path, input_warning, arguments
+            )
+    return path_list
+
+
+def interactive_mode(
+    path_list: list[str],
+    reset_path: bool,
+    input_warning: str,
+    arguments: argparse.Namespace,
+):
     while path_list == "" or input_warning != "y":
-        path_list = ask_path_to_user(reset_path=reset_path)
+        period_number, week_list = ask_path_to_user(arguments, reset_path=reset_path)
+        path_list = convert_numbers_to_path(period_number, week_list, arguments)
         # does the user wants to continue ? (that's the last warning)
         input_warning = input(color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD"))
         reset_path = True
@@ -552,6 +585,7 @@ def warn_and_get_path():
     print(color_text("We have a path !", "YELLOW"))
     for path in path_list:
         print(color_text(path, "YELLOW"))
+
     return path_list
 
 
@@ -584,7 +618,7 @@ def test_functions():
     # test_uploads_from_md
     # print()
     path = explore_md_file.example_week_md_path
-    test_uploads_from_md(path)
+    sync_event_from_md(path)
 
 
 def create_or_update_week_events():
@@ -613,7 +647,7 @@ def create_or_update_week_events():
     arguments = read_arguments()
     print(arguments)
     # get the path from the user, provided as args or not.
-    path_list = warn_and_get_path()
+    path_list = warn_and_get_path(arguments)
     # if isn't exited yet, we continue.
 
     logging.basicConfig(
@@ -630,7 +664,7 @@ def create_or_update_week_events():
             raise FileNotFoundError(WRONG_PATH_MSG)
 
         print(EXPLORING_MSG)
-        test_uploads_from_md(path)
+        sync_event_from_md(path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 
