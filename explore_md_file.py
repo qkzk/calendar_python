@@ -351,7 +351,7 @@ def get_event_from_lines(file_lines):
             if line_nb >= nb_file_lines:
                 break
             line = file_lines[line_nb]
-            while line.startswith("*"):
+            while line.startswith("*") or line.startswith("-"):
                 # we extract the events from the day
                 events_list_from_day.append([line.strip()])
                 line_nb += 1

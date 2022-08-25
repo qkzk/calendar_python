@@ -114,7 +114,7 @@ text_description_example = """<ul><li>voila voila</li><li>revoila</li></ul>"""
 # Real path
 
 period_list = range(1, 6)
-period_path = "/home/quentin/gdrive/cours/git_cours/cours/2021/periode_{}/"
+period_path = "/home/quentin/gdrive/cours/git_cours/cours/2022/periode_{}/"
 default_path_md = period_path + "semaine_{}.md"
 
 # GOOGLE API FUNCTIONS
@@ -263,10 +263,10 @@ def get_next_event_list(next_nb=10, display=False):
             details_list["etag"] = event["etag"]
 
             # print(start, end, description, event['summary'])
-            pprint(details_list)
+            # pprint(details_list)
 
             print("\nevent complete :\n")
-            pprint(event)
+            # pprint(event)
     return events
 
 
@@ -345,7 +345,7 @@ def sync_event_from_md(path, service=None):
     events = explore_md_file.extract_events_from_file(path)
     # input("press ctrl + C to abort ")
     for event_dic in events:
-        # pprint(event)
+        # pprint(event_dic)
         existing_event = event_already_have_id(event_dic, service)
         if not existing_event:
             create_event(event_details=event_dic, service=service)
