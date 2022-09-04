@@ -303,7 +303,7 @@ def update_event(
     service: Resource,
     event_details: dict,
     eventId: Optional[str] = None,
-    existing_event: Optional[dict[str, dict[str, str]]] = None,
+    existing_event: Optional[dict[str, list[dict[str, str]]]] = None,
     update_description: bool = False,
 ) -> None:
     """
@@ -399,7 +399,7 @@ def update_or_create_event(
 def get_first_event_from_event_date(
     event: dict[str, dict[str, str]],
     service: Resource,
-) -> Optional[dict[str, dict[str, str]]]:
+) -> Optional[dict[str, list[dict[str, str]]]]:
     """
     Look for an event by given dates in calendar.
     If one is found, return the event.

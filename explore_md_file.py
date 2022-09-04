@@ -21,7 +21,7 @@ import pytz
 
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
-traduction_day = {
+TRANSTALE_DAY = {
     # on pourrait utiliser des locales et traduire automatiquement...
     "Lundi": "Monday",
     "Mardi": "Tuesday",
@@ -31,7 +31,8 @@ traduction_day = {
     "Samedi": "Saturday",
     "Dimanche": "Sunday",
 }
-traduction_month = {
+
+TRANSLATE_MONTH = {
     "janvier": "January",
     "février": "February",
     "mars": "March",
@@ -46,7 +47,7 @@ traduction_month = {
     "décembre": "December",
 }
 
-monthes_end_year = [
+MONTHES_END_YEAR = [
     "January",
     "February",
     "March",
@@ -56,7 +57,7 @@ monthes_end_year = [
     "July",
 ]
 
-colors = {
+COLORS_FROM_NUMBER = {
     # rainbow order
     "11": "#dc2127",  # rouge
     "4": "#ff887c",  # Rosé
@@ -71,7 +72,7 @@ colors = {
     "8": "#e1e1e1",  # gris clair
 }
 
-student_class_colors = {
+CLASS_COLOR = {
     "2": ["ISN", "tale nsi"],
     "1": ["1ere NSI"],
     "9": ["ap", "orientation", "AP"],
@@ -84,17 +85,17 @@ student_class_colors = {
 }
 
 
-def get_event_color(string):
+def get_event_color(string: str) -> Optional[str]:
     """
     Search for keywords in the description of the event.
     Return the color number (string) if something is found
 
     @param string: (str) the description of the event
-    @return: (str or None) the
+    @return: (str or None) the found color
     """
     print(string)
     string = string.lower()
-    for nb, tags in student_class_colors.items():
+    for nb, tags in CLASS_COLOR.items():
         for tag in tags:
             if tag.lower() in string.lower():
                 return nb
@@ -127,7 +128,7 @@ def get_date_from_line(line: str) -> datetime.datetime:
     # print(date_list)
     # day_of_the_week = traduction_day[date_list[0]]
     day_nb = date_list[1]
-    month = traduction_month[date_list[2]]
+    month = TRANSLATE_MONTH[date_list[2]]
     year = get_current_year(month)
     date_str_strp = "-".join([month, day_nb])
     date_str_strp = str(year) + "-" + date_str_strp
@@ -151,14 +152,14 @@ def get_current_year(md_month: str) -> int:
     now = datetime.datetime.now()
     year = now.year
     month = now.month
-    if md_month in monthes_end_year and month in range(8, 13):
+    if md_month in MONTHES_END_YEAR and month in range(8, 13):
         # is it before or after the end of civil year ?
         year += 1
     return year
 
 
 def get_events_from_str(
-    events_dic_str_from_lines: dict[datetime.datetime, str]
+    events_dic_str_from_lines: dict[datetime.datetime, dict[str, str]]
 ) -> dict[datetime.datetime, list[dict[str, list[str]]]]:
     """
     loop through the lines and extract the events
@@ -321,11 +322,13 @@ def format_dt_for_event(time_of_event: datetime.datetime) -> str:
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
-def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
+def get_event_from_lines(
+    file_lines: list[str],
+) -> dict[datetime.datetime, dict[str, str]]:
     """
     Extract the events from lines of a file
 
-    Return them as a dic of list of dic (to be flattened)
+    Return them as a dict of list of dict (to be flattened)
     see other functions for more detailled description of the events
 
     @param file_lines: (list of str) the lines of the md file
@@ -367,7 +370,7 @@ def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
 
 def extract_events_from_file(
     path: Optional[str] = None, verbose=True
-) -> list[dict[str, dict[str, str]]]:
+) -> list[dict[str, list[dict[str, str]]]]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
