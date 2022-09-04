@@ -13,8 +13,7 @@ each event is a dic and has the keys :
 
 """
 
-from pprint import pprint
-from typing import Optional, Union
+from typing import Optional
 import datetime
 
 import markdown

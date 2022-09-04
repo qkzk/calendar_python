@@ -15,6 +15,7 @@ from typing import Any, Optional, Union
 
 import argparse
 import logging
+import logging.handlers
 import os
 import os.path
 import pickle
@@ -30,6 +31,8 @@ import pytz
 import explore_md_file
 from arguments_parser import read_arguments
 from calendar_id import PYTHON_LYCEE_ID
+
+CURRENT_YEAR = 2022
 
 # constants
 TEXT_COLORS = {
@@ -114,9 +117,11 @@ text_description_example = """<ul><li>voila voila</li><li>revoila</li></ul>"""
 # default_path_md = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_{}/semaine_{}.md"
 # Real path
 
-period_list = range(1, 6)
-period_path = "/home/quentin/gdrive/cours/git_cours/cours/2022/periode_{}/"
-default_path_md = period_path + "semaine_{}.md"
+GIT_COURS_REPO_PATH = "/home/quentin/gdrive/cours/git_cours/cours/"
+
+PERIOD_LIST = range(1, 6)
+PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
+default_path_md = PERIOD_PATH + "semaine_{}.md"
 
 # GOOGLE API FUNCTIONS
 
@@ -346,12 +351,9 @@ def update_event(
 
     # Print the updated date.
 
-    logging.basicConfig(
-        format="%(asctime)s %(message)s", filename=LOGFILE, level=logging.DEBUG
-    )
     update_event_msg = "updated the event: {}".format(updated_event["htmlLink"])
     print(update_event_msg)
-    logging.warning(update_event_msg)
+    logger.warning(update_event_msg)
 
 
 def sync_event_from_md(
@@ -446,14 +448,9 @@ def create_event(
         .execute()
     )
 
-    logging.basicConfig(
-        format="%(asctime)s %(message)s",
-        filename=LOGFILE,
-        level=logging.DEBUG,
-    )
     creation_event_msg = f"Event created: {event.get('htmlLink')}"
     print(creation_event_msg)
-    logging.warning(creation_event_msg)
+    logger.warning(creation_event_msg)
 
 
 def extract_number_from_path(week_md_filename: str) -> int:
@@ -505,7 +502,7 @@ def display_md_content(path: str) -> None:
         print(color_text(mdfile.read(), "BOLD"))
 
 
-def ask_path_to_user(
+def get_md_path_from_args_or_user(
     arguments: argparse.Namespace,
     reset_path=False,
 ) -> tuple[Union[str, Any], list[Union[int, Any]]]:
@@ -514,48 +511,64 @@ def ask_path_to_user(
     @param reset_path: (bool) do we have to reset the path ?
     @return: (str) the path to the md file
     """
-    global period_path
     print(color_text(WARNING_MSG, "DARKCYAN"))
 
     if reset_path or len(sys.argv) == 1:
         # no parameters were given by the user
-        period_number = -1
-        while period_number not in period_list:
-            period_number = int(input(GET_PERIOD_MSG))
-        period_path = period_path.format(period_number)
-        week_dirs_list = get_weeks_from_period(period_path)
-        week_number = -1
-        # while week_number not in week_dirs_list:
-        #     week_number = int(input(GET_WEEK_MSG.format(week_dirs_list)))
-        while True:
-            inputed_weeks = input(GET_WEEK_MSG.format(week_dirs_list))
-            if " " in inputed_weeks:
-                mode = "multi_weeks"
-                week_list = [int(number) for number in inputed_weeks.split(" ")]
-                break
-
-            else:
-                week_number = int(inputed_weeks)
-            if week_number in week_dirs_list:
-                mode = "solo_week"
-                week_list = [week_number]
-                break
+        mode = "Interactive"
+        period_number = ask_user_period()
+        period_path = PERIOD_PATH.format(period_number)
+        week_list = ask_user_week(period_path)
 
     elif len(sys.argv) < 2:
         # wrong number of arguments
         raise ValueError(WRONG_PATH_MSG)
     else:
         # the user has provided at least a parameter
-        mode = "args_provided"
+        mode = "CLI arguments"
         period_number = arguments.period_number
         week_list = convert_week_numbers(arguments.week_numbers)
-    print(color_text(mode, "DARKCYAN"))
-    if len(week_list) == 0:
+    print(color_text(f"mode: {mode}", "DARKCYAN"))
+    if not week_list:
         raise ValueError("week_list empty")
-    if not isinstance(week_list[0], int):
-        raise ValueError("weeks must be integer")
 
     return period_number, week_list
+
+
+def ask_user_period() -> int:
+    """
+    Asks the user for a valid period number.
+    Loops until the user gave a valid period number.
+    @returns: (int) a period number from PERIOD_LIST
+    """
+    while True:
+        period_str = input(GET_PERIOD_MSG)
+        try:
+            period_number = int(period_str)
+        except ValueError:
+            continue
+        if period_number in PERIOD_LIST:
+            return period_number
+
+
+def ask_user_week(period_path: str) -> list[int]:
+    """
+    Returns a list of valid weeks for a given path.
+    Loops untill the user provides a valid week list
+    Typed weeks must be separated by spaces
+
+    @param period_path: (str) the path for the given period.
+    @returns: (list[int]) the list of weeks typed by the user
+    """
+    valid_weeks = get_weeks_from_period(period_path)
+    while True:
+        inputed_weeks = input(GET_WEEK_MSG.format(valid_weeks))
+        try:
+            week_list = list(map(int, inputed_weeks.split(" ")))
+        except ValueError:
+            continue
+        if all(map(lambda week: week in valid_weeks, week_list)):
+            return week_list
 
 
 def convert_numbers_to_path(
@@ -629,7 +642,9 @@ def interactive_mode(
     arguments: argparse.Namespace,
 ) -> list[str]:
     while user_provides_invalid_input(path_list, input_warning):
-        period_number, week_list = ask_path_to_user(arguments, reset_path=reset_path)
+        period_number, week_list = get_md_path_from_args_or_user(
+            arguments, reset_path=reset_path
+        )
         path_list = convert_numbers_to_path(period_number, week_list, arguments)
         # does the user wants to continue ? (that's the last warning)
         input_warning = input(color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD"))
@@ -727,16 +742,12 @@ def create_or_update_week_events() -> None:
     path_list = warn_and_get_path(arguments)
     # if isn't exited yet, we continue.
 
-    logging.basicConfig(
-        format="%(asctime)s %(message)s", filename=LOGFILE, level=logging.DEBUG
-    )
-
     print(color_text(STARTING_APPLICATION_MSG, "DARKCYAN"))
-    logging.warning(STARTING_APPLICATION_MSG)
+    logger.warning(STARTING_APPLICATION_MSG)
 
     for path in path_list:
         if not os.path.exists(path):
-            logging.debug("File not found : {}".format(path))
+            logger.debug("File not found : {}".format(path))
             raise FileNotFoundError(
                 f"""File not found : {path}
 {WRONG_PATH_MSG}"""
@@ -748,6 +759,24 @@ def create_or_update_week_events() -> None:
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 
+def create_logger() -> logging.Logger:
+    """Creates a rotating file_handler logger."""
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    file_handler = logging.handlers.RotatingFileHandler(
+        filename=LOGFILE,
+        maxBytes=5 * 1025 * 1024,
+        backupCount=5,
+    )
+    file_handler.setFormatter(formatter)
+    # add the handlers to logger
+    logger.addHandler(file_handler)
+    return logger
+
+
 if __name__ == "__main__":
-    # test_functions()
+    logger = create_logger()
     create_or_update_week_events()
