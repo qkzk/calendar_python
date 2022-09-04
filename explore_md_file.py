@@ -13,10 +13,10 @@ each event is a dic and has the keys :
 
 """
 
-import markdown
+from typing import Optional
 import datetime
-from pprint import pprint
 
+import markdown
 import pytz
 
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
@@ -64,28 +64,23 @@ colors = {
     "5": "#fbd75b",  # Jaune un peu foncé
     "10": "#51b749",  # vert clair
     "2": "#7ae7bf",  # jade
-    "1": "#a4bdfc",  # Bleu pale
     "7": "#46d6db",  # bleu clair
     "9": "#5484ed",  # bleu foncé
+    "1": "#a4bdfc",  # Bleu pale
     "3": "#dbadff",  # Violet clair
     "8": "#e1e1e1",  # gris clair
 }
 
 student_class_colors = {
-    "5": [
-        "ISN",
-    ],
-    "6": [
-        "NSI",
-    ],
-    "1": ["ap", "orientation", "AP"],
-    "7": ["2nd", "train"],
-    "8": [
-        "aero",
-    ],
-    "3": ["l2s3", "l1s2", "l2s4", "croqmaths", "imt"],
+    "2": ["ISN", "tale nsi"],
+    "1": ["1ere NSI"],
+    "9": ["ap", "orientation", "AP"],
+    "8": ["2nd", "train"],
+    "6": ["tmg2"],
+    "11": ["l2s3", "l1s2", "l2s4", "croqmaths"],
+    "7": ["imt", "CP2", "CP1"],
     "10": ["cdr", "CDR"],
-    "2": ["réunion", "reunion", "conseil", "PP", "default"],
+    "3": ["réunion", "reunion", "conseil", "PP", "default"],
 }
 
 
@@ -97,32 +92,27 @@ def get_event_color(string):
     @param string: (str) the description of the event
     @return: (str or None) the
     """
-    words = string.lower().split(" ")
-    print(words)
+    print(string)
+    string = string.lower()
     for nb, tags in student_class_colors.items():
         for tag in tags:
-            for word in words:
-                if tag.lower() in word:
-                    # print(f"{tag} in {words} --> {nb}")
-                    return nb
-    # print("nothing found")
+            if tag.lower() in string.lower():
+                return nb
     return None
 
 
-def explore_md_file(path):
+def read_md_file_lines(path: str) -> list[str]:
     """
     open a file and return the list of lines as str
 
     @param path: (str) the path of the given file
     @return: (list of str) every line is a string
     """
-    with open(path, mode="r") as f:
-        file_lines = f.readlines()
-        # print(file_lines)
-    return file_lines
+    with open(path, mode="r", encoding="utf-8") as f:
+        return f.readlines()
 
 
-def get_date_from_line(line):
+def get_date_from_line(line: str) -> datetime.datetime:
     """
     Extract the date from a line :
     ## Lundi 02 septembre   -----> 2019-09-02 00:00:00
@@ -135,7 +125,7 @@ def get_date_from_line(line):
     date_str = line[3:]
     date_list = date_str.strip().split(" ")
     # print(date_list)
-    day_of_the_week = traduction_day[date_list[0]]
+    # day_of_the_week = traduction_day[date_list[0]]
     day_nb = date_list[1]
     month = traduction_month[date_list[2]]
     year = get_current_year(month)
@@ -146,7 +136,7 @@ def get_date_from_line(line):
     return date_day
 
 
-def get_current_year(md_month):
+def get_current_year(md_month: str) -> int:
     """
     Return the correct year.
     The year is either the current year or the next.
@@ -167,18 +157,22 @@ def get_current_year(md_month):
     return year
 
 
-def get_events_from_str(events_dic_str_from_lines):
+def get_events_from_str(
+    events_dic_str_from_lines: dict[datetime.datetime, str]
+) -> dict[datetime.datetime, list[dict[str, list[str]]]]:
     """
-    loop through the lines and extrac the events
+    loop through the lines and extract the events
     return them as a dict of datetime: list of events
 
-    @param events_dic_str_from_lines : (str) formated like :
+    @param events_dic_str_from_lines : (dict)
+        key: (str) a datetime key
+        formated like :
 
     * 8h-8h55 - s213 - 2nde 3
     * corriger exo machin chose
     * rendre devoir
     rendre travail truc
-    @return: (dic) the events of that date datetime: list of events
+    @return: (list) the events of that date datetime: list of events
         each event has the keys :
             * 'start':datetime,
             * 'end':datetime,
@@ -227,7 +221,7 @@ def get_events_from_str(events_dic_str_from_lines):
     return event_per_date
 
 
-def get_html(description):
+def get_html(description: str) -> str:
     """
     format a string from markdown to html
     @param description: (str) mardkdown formated string
@@ -237,7 +231,9 @@ def get_html(description):
     return description_html
 
 
-def get_hours(dt_key, hours):
+def get_hours(
+    dt_key: datetime.datetime, hours: str
+) -> tuple[dict[str, str], dict[str, str]]:
     """
     Extract the start and end datetime of a given string
 
@@ -280,7 +276,7 @@ def get_hours(dt_key, hours):
     return start, end
 
 
-def get_hours_minute(time_str):
+def get_hours_minute(time_str: str) -> tuple[int, int]:
     """
     Extract an hour a minute from a string
     we could use datetime.strptime but it's dirtier and quicker (to code)
@@ -293,7 +289,7 @@ def get_hours_minute(time_str):
     return time_hour, time_minute
 
 
-def get_offset_at_given_date(time_of_event):
+def get_offset_at_given_date(time_of_event: datetime.datetime) -> int:
     """
     Get the offset (1 or 2 at a give date)
 
@@ -311,7 +307,7 @@ def get_offset_at_given_date(time_of_event):
     return 0
 
 
-def format_dt_for_event(time_of_event):
+def format_dt_for_event(time_of_event: datetime.datetime) -> str:
     """
     '2019-08-09T15:00:00+02:00'
 
@@ -325,7 +321,7 @@ def format_dt_for_event(time_of_event):
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
-def get_event_from_lines(file_lines):
+def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
     """
     Extract the events from lines of a file
 
@@ -351,7 +347,7 @@ def get_event_from_lines(file_lines):
             if line_nb >= nb_file_lines:
                 break
             line = file_lines[line_nb]
-            while line.startswith("*"):
+            while line.startswith("*") or line.startswith("-"):
                 # we extract the events from the day
                 events_list_from_day.append([line.strip()])
                 line_nb += 1
@@ -369,7 +365,9 @@ def get_event_from_lines(file_lines):
     return events_dic_str_from_lines
 
 
-def extract_events_from_file(path=None, verbose=True):
+def extract_events_from_file(
+    path: Optional[str] = None, verbose=True
+) -> list[dict[str, dict[str, str]]]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
@@ -389,7 +387,7 @@ def extract_events_from_file(path=None, verbose=True):
         # example mode
         print("PATH NOT PROVIDED USING DEFAULT PATH")
         path = example_week_md_path
-    file_lines = explore_md_file(path)
+    file_lines = read_md_file_lines(path)
     # pprint(file_lines)
     events_dic_str_from_lines = get_event_from_lines(file_lines)
     # pprint(events_dic_str_from_lines)

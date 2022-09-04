@@ -70,13 +70,14 @@ colors = {
 }
 
 student_class_colors = {
-    "5": ["ISN", ],
-    "4": ["NSI", ],
     "7": ["2nd"],
-    "8": ["aero", ],
+    "8": ["aero"],
+    "3": ["tmg"],
     "1": ["ap", "orientation"],
     "3": ["l2s3", "l1s2", "l2s4", "croqmaths", "imt"],
     "2": ["réunion", "reunion", "conseil", "PP", "default"],
+    "5": ["1ere"],
+    "4": ["tale"],
 }
 
 
@@ -92,10 +93,8 @@ def get_event_color(string):
     print(words)
     for nb, tags in student_class_colors.items():
         for tag in tags:
-            for word in words:
-                if tag.lower() in word:
-                    # print(f"{tag} in {words} --> {nb}")
-                    return nb
+            if tag.lower in string.lower():
+                return nb
     # print("nothing found")
     return None
 
