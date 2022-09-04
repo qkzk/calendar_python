@@ -9,26 +9,27 @@ description:
 ---
 """
 
+from os import listdir
+from os.path import isfile, join
+from typing import Any, Optional, Union
 
 import argparse
-import datetime
 import logging
 import os
 import os.path
 import pickle
 import sys
-from os import listdir
-from os.path import isfile, join
-from pprint import pprint
 
-import pytz
+from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+from googleapiclient.discovery import Resource, build
+
+import pytz
 
 import explore_md_file
-from calendar_id import PYTHON_LYCEE_ID
 from arguments_parser import read_arguments
+from calendar_id import PYTHON_LYCEE_ID
 
 # constants
 TEXT_COLORS = {
@@ -120,7 +121,7 @@ default_path_md = period_path + "semaine_{}.md"
 # GOOGLE API FUNCTIONS
 
 
-def get_cred():
+def get_credentials() -> Union[Credentials, Any]:
     """
     Returns the credentials for google calendar api
 
@@ -146,183 +147,200 @@ def get_cred():
     return creds
 
 
-def build_service():
+def build_service() -> Resource:
     """
     Return the google api client service ressource
     Start by building the credentials if needed
 
     @return: (googleapiclient.discovery.Resource)
     """
-    creds = get_cred()
+    creds = get_credentials()
     service = build("calendar", "v3", credentials=creds)
     return service
 
 
-def get_event_property(event, property, display=False):
+def get_event_property(
+    event: dict[str, dict[str, str]],
+    property: str,
+) -> Optional[Union[str, dict[str, str]]]:
     """
     Renvoie une propriété d'un événement
     @param event: () un event
     @return : (any) la propriété de l'événement
     """
-    # event = get_event_details(eventID, service)
-    property_value = None
-    if property in event:
-        property_value = event[property]
-    if display:
-        print(property, property_value)
-    return property_value
+    value = event.get(property)
+    print(property, value)
+    return value
 
 
-def get_event(eventId, service):
+def get_existing_event(
+    service: Resource,
+    eventId: str,
+) -> Optional[dict[str, dict[str, str]]]:
     """
-    renvoie l'événement donné par eventID
+    returns an event from its eventID
+    Returns None if nothing is found.
+
+    @param service: (Resource) the google api ressource
+    @eventId: (str) the given event id, a string containing an integer
+    @returns: (Optional[dict[str, dict[str, str]]]) the event, if any.
     """
-    id = eventId
-    event = service.events().get(calendarId=PYTHON_LYCEE_ID, eventId=id).execute()
+    event = service.events().get(calendarId=PYTHON_LYCEE_ID, eventId=eventId).execute()
     return event
 
 
-def find_next_event_by_date(given_time=None):
-    """
-    Return the first evenement that finish after given_time.
-    If no given_time is provided, the current time is used.
-
-    @param given_time: (datetime.datetime obj) the time written as locally
-    @return: (google api event object) the next event
-        if no event is found, return None
-    """
-    service = build_service()
-    if given_time:
-        requested_dt = pytz.timezone("Europe/Paris").localize(given_time, is_dst=None)
-        str_dt = requested_dt
-        dt_astimz_utc = str_dt.astimezone(pytz.utc)
-        dt_string = dt_astimz_utc.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
-
-    if not given_time:
-        str_dt = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-
-    # attention va renvoyer le premier événement qui se termine avant timeMin
-    events_result = (
-        service.events()
-        .list(
-            calendarId=PYTHON_LYCEE_ID,
-            timeMin=dt_string,
-            maxResults=1,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-        .execute()
-    )
-    if len(events_result) > 0:
-        event = events_result.get("items", [])[0]
-        return event
-
-
-def get_next_event_list(next_nb=10, display=False):
-    """
-    Return the list of the next 10 events
-    @param next_nb: (int) how many events do you want ?
-    @return: (list) list of next 10 events starting now
-    """
-    service = build_service()
-
-    # Prints the start and name of the next 10 events on the user's calendar.
-    # Call the Calendar API
-    now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-
-    print(now)
-
-    events_result = (
-        service.events()
-        .list(
-            calendarId=PYTHON_LYCEE_ID,
-            timeMin=now,
-            maxResults=next_nb,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-        .execute()
-    )
-    events = events_result.get("items", [])
-
-    if display:
-        print("Getting the upcoming 10 events")
-        if not events:
-            print("No upcoming events found.")
-        for event in events:
-            details_list = {}
-            start = event["start"].get(
-                "dateTime",
-                event["start"].get("date"),
-            )
-            details_list["start"] = start
-            details_list["end"] = event["end"].get(event["end"].get("date"))
-            details_list["summary"] = event["summary"]
-            if "description" in event:
-                details_list["description"] = event["description"]
-            details_list["etag"] = event["etag"]
-
-            # print(start, end, description, event['summary'])
-            # pprint(details_list)
-
-            print("\nevent complete :\n")
-            # pprint(event)
-    return events
+# def find_next_event_by_date(given_time: Optional[datetime.datetime] = None):
+#     """
+#     Return the first evenement that finish after given_time.
+#     If no given_time is provided, the current time is used.
+#
+#     @param given_time: (datetime.datetime obj) the time written as locally
+#     @return: (google api event object) the next event
+#         if no event is found, return None
+#     """
+#     service = build_service()
+#     if given_time is None:
+#         dt_string = (
+#             datetime.datetime.utcnow().isoformat() + "Z"
+#         )  # 'Z' indicates UTC time
+#     else:
+#         str_dt = pytz.timezone("Europe/Paris").localize(given_time, is_dst=None)
+#         dt_astimz_utc = str_dt.astimezone(pytz.utc)
+#         dt_string = dt_astimz_utc.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+#
+#     # attention va renvoyer le premier événement qui se termine avant timeMin
+#     events_result = (
+#         service.events()
+#         .list(
+#             calendarId=PYTHON_LYCEE_ID,
+#             timeMin=dt_string,
+#             maxResults=1,
+#             singleEvents=True,
+#             orderBy="startTime",
+#         )
+#         .execute()
+#     )
+#     if len(events_result) > 0:
+#         event = events_result.get("items", [])[0]
+#         return event
 
 
-def get_calendar_list(display=False):
-    """
-    List the calendars for given credentials
-    """
-    service = build_service()
+# def get_next_event_list(next_nb=10, display=False):
+#     """
+#     Return the list of the next 10 events
+#     @param next_nb: (int) how many events do you want ?
+#     @return: (list) list of next 10 events starting now
+#     """
+#     service = build_service()
+#
+#     # Prints the start and name of the next 10 events on the user's calendar.
+#     # Call the Calendar API
+#     now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
+#
+#     print(now)
+#
+#     events_result = (
+#         service.events()
+#         .list(
+#             calendarId=PYTHON_LYCEE_ID,
+#             timeMin=now,
+#             maxResults=next_nb,
+#             singleEvents=True,
+#             orderBy="startTime",
+#         )
+#         .execute()
+#     )
+#     events = events_result.get("items", [])
+#
+#     if display:
+#         print("Getting the upcoming 10 events")
+#         if not events:
+#             print("No upcoming events found.")
+#         for event in events:
+#             details_list = {}
+#             start = event["start"].get(
+#                 "dateTime",
+#                 event["start"].get("date"),
+#             )
+#             details_list["start"] = start
+#             details_list["end"] = event["end"].get(event["end"].get("date"))
+#             details_list["summary"] = event["summary"]
+#             if "description" in event:
+#                 details_list["description"] = event["description"]
+#             details_list["etag"] = event["etag"]
+#
+#             # print(start, end, description, event['summary'])
+#             # pprint(details_list)
+#
+#             print("\nevent complete :\n")
+#             # pprint(event)
+#     return events
 
-    calendar_results = service.calendarList().list().execute()
-    calendars = calendar_results.get("items", [])
-    if display:
-        print("\nCalendar List : \n")
-        if not calendars:
-            print("No Calendars found.")
-        for calendar_list_entry in calendars:
-            pprint(calendar_list_entry)
-    return calendars
+
+# def get_calendar_list(display=False):
+#     """
+#     List the calendars for given credentials
+#     """
+#     service = build_service()
+#
+#     calendar_results = service.calendarList().list().execute()
+#     calendars = calendar_results.get("items", [])
+#     if display:
+#         print("\nCalendar List : \n")
+#         if not calendars:
+#             print("No Calendars found.")
+#         for calendar_list_entry in calendars:
+#             pprint(calendar_list_entry)
+#     return calendars
 
 
 def update_event(
-    event_details, eventId=None, event=None, service=None, update_description=False
-):
+    service: Resource,
+    event_details: dict,
+    eventId: Optional[str] = None,
+    existing_event: Optional[dict[str, dict[str, str]]] = None,
+    update_description: bool = False,
+) -> None:
     """
     Update the details of an event.
     The event can be passed or only his id
     If no service is given, will create the service
 
 
-    @param event_details: (dic) les attributs de l'événements à mettre à jour
+    @param event_details: (dict) les attributs de l'événements à mettre à jour
     @param eventId: (str) l'id
-    @param event: (google api event object) the event itself
+    @param existing_event: (google api event object) the event itself
     @param service: (google api ressource service object) the service object
     @param update_description : (bool) doit on cumuler la description ou
         la remplacer ?
+    @returns: (None)
     """
-    if not service:
-        service = build_service()
-
-    if not eventId and not event:
+    if eventId is None and existing_event is None:
         raise ValueError("You must provide the event or its eventId")
 
-    if not event:
-        event = get_event(eventId, service)
+    if existing_event is None and eventId is not None:
+        existing_event = get_existing_event(service, eventId)
+
+    if existing_event is None:
+        raise ValueError(
+            f"event unknown - eventId: {eventId}, event_details: {event_details}"
+        )
 
     if update_description:
-        old_desc = get_event_property(event, "description", display=True)
+        old_desc = get_event_property(existing_event, "description")
         if old_desc:
             event_details["description"] = old_desc + event_details["description"]
 
     for attribute, value in event_details.items():
-        event[attribute] = value
+        existing_event[attribute] = value
 
     updated_event = (
         service.events()
-        .update(calendarId=PYTHON_LYCEE_ID, eventId=event["id"], body=event)
+        .update(
+            calendarId=PYTHON_LYCEE_ID,
+            eventId=existing_event["id"],
+            body=existing_event,
+        )
         .execute()
     )
 
@@ -336,24 +354,50 @@ def update_event(
     logging.warning(update_event_msg)
 
 
-def sync_event_from_md(path, service=None):
+def sync_event_from_md(
+    service: Resource,
+    path: str,
+) -> None:
     """
     Create or update events from md file
     """
-    if service == None:
-        service = build_service()
-    events = explore_md_file.extract_events_from_file(path)
-    # input("press ctrl + C to abort ")
-    for event_dic in events:
-        # pprint(event_dic)
-        existing_event = event_already_have_id(event_dic, service)
-        if not existing_event:
-            create_event(event_details=event_dic, service=service)
-        else:
-            update_event(event_dic, event=existing_event, service=service)
+    event_list = explore_md_file.extract_events_from_file(path)
+    for event_details in event_list:
+        update_or_create_event(service, event_details)
 
 
-def event_already_have_id(event, service=None):
+def update_or_create_event(
+    service: Resource,
+    event_details: dict[str, dict[str, str]],
+) -> None:
+    """
+    Sync a single event read from a .md file.
+    seek if the event already exists,
+    if there's already an event, it's updated.
+    Else, a new one is created
+
+    @param service: (Resource) the google api ressource
+    @param event_details: (dict[str, dict[str, str]]) the description of an event
+    @returns: (None)
+    """
+    existing_event = get_first_event_from_event_date(event_details, service)
+    if existing_event is None:
+        create_event(
+            service=service,
+            event_details=event_details,
+        )
+    else:
+        update_event(
+            service=service,
+            event_details=event_details,
+            existing_event=existing_event,
+        )
+
+
+def get_first_event_from_event_date(
+    event: dict[str, dict[str, str]],
+    service: Resource,
+) -> Optional[dict[str, dict[str, str]]]:
     """
     Look for an event by given dates in calendar.
     If one is found, return the event.
@@ -363,13 +407,10 @@ def event_already_have_id(event, service=None):
     @return: (google api event object) description of the event if it already
         exists
     """
-    if not service:
-        service = build_service()
-
     timeMin = event["start"]["dateTime"]
     timeMax = event["end"]["dateTime"]
 
-    events_result = (
+    events_from_googleapi = (
         service.events()
         .list(
             calendarId=PYTHON_LYCEE_ID,
@@ -381,23 +422,21 @@ def event_already_have_id(event, service=None):
         )
         .execute()
     )
-    events = events_result.get("items", [])
-
-    if events:
-        return events[0]
-    return None
+    events = events_from_googleapi.get("items", [None])
+    return events[0]
 
 
-def create_event(event_details=None, service=None):
+def create_event(
+    service: Resource,
+    event_details: dict[str, dict[str, str]],
+) -> None:
     """
     Create a new event with given details
-    @param event_details: (dic) description of the event
+    @param event_details: (dict) description of the event
     @param service: (google api ressource service) the service
     @return: (None)
     """
 
-    if service == None:
-        service = build_service()
     event = (
         service.events()
         .insert(
@@ -408,14 +447,16 @@ def create_event(event_details=None, service=None):
     )
 
     logging.basicConfig(
-        format="%(asctime)s %(message)s", filename=LOGFILE, level=logging.DEBUG
+        format="%(asctime)s %(message)s",
+        filename=LOGFILE,
+        level=logging.DEBUG,
     )
-    creation_event_msg = "Event created: {}".format(event.get("htmlLink"))
+    creation_event_msg = f"Event created: {event.get('htmlLink')}"
     print(creation_event_msg)
     logging.warning(creation_event_msg)
 
 
-def extract_number_from_path(week_md_filename):
+def extract_number_from_path(week_md_filename: str) -> int:
     """
     Extract the number from a week .md filename
 
@@ -429,7 +470,7 @@ def extract_number_from_path(week_md_filename):
     return week_number
 
 
-def get_weeks_from_period(period_path):
+def get_weeks_from_period(period_path: str) -> list[int]:
     """
     Get the week numbers from a given period path
     List all the week from path
@@ -437,16 +478,23 @@ def get_weeks_from_period(period_path):
     @return: (list of int) the list of the weeks in that period
     """
     week_dirs_list = [f for f in listdir(period_path) if isfile(join(period_path, f))]
-
     week_number_list = sorted(list(map(extract_number_from_path, week_dirs_list)))
     return week_number_list
 
 
-def color_text(text, color="BOLD"):
+def color_text(text: str, color: str = "BOLD") -> str:
+    """
+    Color a line for shell printing.
+    The string is encapsulated and rest of line will have default format.
+
+    @param text: (str) text to be printed
+    @param color: (str) used color or "BOLD"
+    @returns: (str) formated string closed by an END tag.
+    """
     return TEXT_COLORS[color] + text + TEXT_COLORS["END"]
 
 
-def display_md_content(path):
+def display_md_content(path: str) -> None:
     """
     Print the content of the md file to the console.
     @param: (path) the path to the md file
@@ -457,7 +505,10 @@ def display_md_content(path):
         print(color_text(mdfile.read(), "BOLD"))
 
 
-def ask_path_to_user(arguments: argparse.Namespace, reset_path=False):
+def ask_path_to_user(
+    arguments: argparse.Namespace,
+    reset_path=False,
+) -> tuple[Union[str, Any], list[Union[int, Any]]]:
     """
     Create the path from the args and ask the user what he wants to do.
     @param reset_path: (bool) do we have to reset the path ?
@@ -499,12 +550,16 @@ def ask_path_to_user(arguments: argparse.Namespace, reset_path=False):
         period_number = arguments.period_number
         week_list = convert_week_numbers(arguments.week_numbers)
     print(color_text(mode, "DARKCYAN"))
+    if len(week_list) == 0:
+        raise ValueError("week_list empty")
+    if not isinstance(week_list[0], int):
+        raise ValueError("weeks must be integer")
 
     return period_number, week_list
 
 
 def convert_numbers_to_path(
-    period_number: int, week_list: list[int], arguments: argparse.Namespace
+    period_number: str, week_list: list[int], arguments: argparse.Namespace
 ) -> list[str]:
     # we now have a complete path
     path_list = []
@@ -523,17 +578,17 @@ def convert_numbers_to_path(
     return path_list
 
 
-def convert_week_numbers(week_numbers: list) -> list:
+def convert_week_numbers(week_numbers: list[str]) -> list[int]:
     """
-    split the week numbers into a list of integers
+    Casts the week numbers into a list of integers
     ["1", "2", "3"] -> [1, 2, 3]
     @param week_numbers: (str) a string containing the week numbers
-    @return: (list of int) those numbers as int in a list
+    @return: (list[int]) the list of casted strings into integers
     """
     return list(map(int, week_numbers))
 
 
-def warn_and_get_path(arguments: argparse.Namespace):
+def warn_and_get_path(arguments: argparse.Namespace) -> list[str]:
     """
     Warn the user about what's he's going to do and return the path provided
     by the user.
@@ -572,8 +627,8 @@ def interactive_mode(
     reset_path: bool,
     input_warning: str,
     arguments: argparse.Namespace,
-):
-    while path_list == "" or input_warning != "y":
+) -> list[str]:
+    while user_provides_invalid_input(path_list, input_warning):
         period_number, week_list = ask_path_to_user(arguments, reset_path=reset_path)
         path_list = convert_numbers_to_path(period_number, week_list, arguments)
         # does the user wants to continue ? (that's the last warning)
@@ -581,47 +636,69 @@ def interactive_mode(
         reset_path = True
         if input_warning in ["n", "N"]:
             print(QUICK_EXIT_MSG)
-            exit(-1)
-    print(color_text("We have a path !", "YELLOW"))
-    for path in path_list:
-        print(color_text(path, "YELLOW"))
-
+            exit(2)
+    print_paths(path_list)
     return path_list
 
 
-def test_functions():
+def print_paths(path_list: list[str]) -> None:
     """
-    Used to test some functions
+    Prints every path in pathlist
+    @param path_list: (list[str]) a list of valid paths
+    @returns: (None)
     """
-    # display event list
-    next_event = get_next_event_list(next_nb=10, display=True)
-
-    # calendar list id
-    calendars = get_calendar_list(display=True)
-
-    # Find the next event after a date
-    dt = datetime.datetime(2019, 8, 9, 14, 0)
-    print("\n next event")
-    next_event = find_next_event_by_date(dt)
-    pprint(next_event)
-
-    # update the next_event
-    eventId = get_event_property(next_event, "id", display=True)
-
-    event_details = {}
-    event_details["location"] = "213"
-    event_details["description"] = text_description_example
-
-    # update_event(event_details, eventId=eventId,  update_description=True)
-    update_event(event_details, event=next_event, update_description=True)
-
-    # test_uploads_from_md
-    # print()
-    path = explore_md_file.example_week_md_path
-    sync_event_from_md(path)
+    for path in path_list:
+        print(color_text(path, "YELLOW"))
 
 
-def create_or_update_week_events():
+def user_provides_invalid_input(
+    path_list: list[str],
+    input_warning: str,
+) -> bool:
+    """
+    True if the provided input is invalid
+    inputs are invalid if they can't be converted into a list of valid files
+    or if the user didn't provide a "y".
+
+    @param path_list: (list[str]) a list of valid week numbers
+    @param input_warning: (str) "y" or another inputed string.
+    """
+    return not path_list or input_warning != "y"
+
+
+# def test_functions():
+#     """
+#     Used to test some functions
+#     """
+#     # display event list
+#     next_event = get_next_event_list(next_nb=10, display=True)
+#
+#     # calendar list id
+#     calendars = get_calendar_list(display=True)
+#
+#     # Find the next event after a date
+#     dt = datetime.datetime(2019, 8, 9, 14, 0)
+#     print("\n next event")
+#     next_event = find_next_event_by_date(dt)
+#     pprint(next_event)
+#
+#     # update the next_event
+#     eventId = get_event_property(next_event, "id", display=True)
+#
+#     event_details = {}
+#     event_details["location"] = "213"
+#     event_details["description"] = text_description_example
+#
+#     # update_event(event_details, eventId=eventId,  update_description=True)
+#     update_event(event_details, event=next_event, update_description=True)
+#
+#     # test_uploads_from_md
+#     # print()
+#     path = explore_md_file.example_week_md_path
+#     sync_event_from_md(path)
+
+
+def create_or_update_week_events() -> None:
     """
     The main function.
 
@@ -633,7 +710,7 @@ def create_or_update_week_events():
     week number must be a correct week for that section
 
     If a file is found at correct path, it's explored.
-    This is the dangerous zone, there's no warning but formatting
+    This is the danger zone, there's no warning but formatting
     must be correct.
 
     The application will crash if it can't read the content of the file
@@ -659,12 +736,15 @@ def create_or_update_week_events():
 
     for path in path_list:
         if not os.path.exists(path):
-            print(path)
             logging.debug("File not found : {}".format(path))
-            raise FileNotFoundError(WRONG_PATH_MSG)
+            raise FileNotFoundError(
+                f"""File not found : {path}
+{WRONG_PATH_MSG}"""
+            )
 
         print(EXPLORING_MSG)
-        sync_event_from_md(path)
+        service: Resource = build_service()
+        sync_event_from_md(service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 

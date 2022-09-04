@@ -94,13 +94,7 @@ def get_event_color(string):
     for nb, tags in student_class_colors.items():
         for tag in tags:
             if tag.lower in string.lower():
-                print(tag, string)
-                input("continue... ")
                 return nb
-            # for word in words:
-            #     if tag.lower() in word.lower():
-            #         # print(f"{tag} in {words} --> {nb}")
-            #         return nb
     # print("nothing found")
     return None
 
