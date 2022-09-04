@@ -13,7 +13,7 @@ each event is a dic and has the keys :
 
 """
 
-from typing import Optional
+from typing import Optional, Union
 import datetime
 
 import markdown
@@ -159,7 +159,7 @@ def get_current_year(md_month: str) -> int:
 
 
 def get_events_from_str(
-    events_dic_str_from_lines: dict[datetime.datetime, dict[str, str]]
+    events_dic_str_from_lines: dict[datetime.datetime, list[list[str]]]
 ) -> dict[datetime.datetime, list[dict[str, list[str]]]]:
     """
     loop through the lines and extract the events
@@ -324,7 +324,7 @@ def format_dt_for_event(time_of_event: datetime.datetime) -> str:
 
 def get_event_from_lines(
     file_lines: list[str],
-) -> dict[datetime.datetime, dict[str, str]]:
+) -> dict[datetime.datetime, list[list[str]]]:
     """
     Extract the events from lines of a file
 
@@ -365,12 +365,11 @@ def get_event_from_lines(
 
         line_nb += 1
         # sunday is ommited if empty
+    __import__("pdb").set_trace()
     return events_dic_str_from_lines
 
 
-def extract_events_from_file(
-    path: Optional[str] = None, verbose=True
-) -> list[dict[str, list[dict[str, str]]]]:
+def extract_events_from_file(path: Optional[str] = None) -> list[dict[str, list[str]]]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
@@ -398,8 +397,7 @@ def extract_events_from_file(
     # pprint(events_from_str)
     nested_events = list(events_from_str.values())
     flat_events = [item for sublist in nested_events for item in sublist]
-    if verbose:
-        print(flat_events)
+    __import__("pdb").set_trace()
     return flat_events
 
 
