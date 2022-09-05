@@ -165,147 +165,10 @@ def build_service() -> Resource:
     return service
 
 
-def get_event_property(
-    event: dict[str, dict[str, str]],
-    property: str,
-) -> Optional[Union[str, dict[str, str]]]:
-    """
-    Renvoie une propriété d'un événement
-    @param event: () un event
-    @return : (any) la propriété de l'événement
-    """
-    value = event.get(property)
-    print(property, value)
-    return value
-
-
-def get_existing_event(
-    service: Resource,
-    eventId: str,
-) -> Optional[dict[str, dict[str, str]]]:
-    """
-    returns an event from its eventID
-    Returns None if nothing is found.
-
-    @param service: (Resource) the google api ressource
-    @eventId: (str) the given event id, a string containing an integer
-    @returns: (Optional[dict[str, dict[str, str]]]) the event, if any.
-    """
-    event = service.events().get(calendarId=PYTHON_LYCEE_ID, eventId=eventId).execute()
-    return event
-
-
-# def find_next_event_by_date(given_time: Optional[datetime.datetime] = None):
-#     """
-#     Return the first evenement that finish after given_time.
-#     If no given_time is provided, the current time is used.
-#
-#     @param given_time: (datetime.datetime obj) the time written as locally
-#     @return: (google api event object) the next event
-#         if no event is found, return None
-#     """
-#     service = build_service()
-#     if given_time is None:
-#         dt_string = (
-#             datetime.datetime.utcnow().isoformat() + "Z"
-#         )  # 'Z' indicates UTC time
-#     else:
-#         str_dt = pytz.timezone("Europe/Paris").localize(given_time, is_dst=None)
-#         dt_astimz_utc = str_dt.astimezone(pytz.utc)
-#         dt_string = dt_astimz_utc.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
-#
-#     # attention va renvoyer le premier événement qui se termine avant timeMin
-#     events_result = (
-#         service.events()
-#         .list(
-#             calendarId=PYTHON_LYCEE_ID,
-#             timeMin=dt_string,
-#             maxResults=1,
-#             singleEvents=True,
-#             orderBy="startTime",
-#         )
-#         .execute()
-#     )
-#     if len(events_result) > 0:
-#         event = events_result.get("items", [])[0]
-#         return event
-
-
-# def get_next_event_list(next_nb=10, display=False):
-#     """
-#     Return the list of the next 10 events
-#     @param next_nb: (int) how many events do you want ?
-#     @return: (list) list of next 10 events starting now
-#     """
-#     service = build_service()
-#
-#     # Prints the start and name of the next 10 events on the user's calendar.
-#     # Call the Calendar API
-#     now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-#
-#     print(now)
-#
-#     events_result = (
-#         service.events()
-#         .list(
-#             calendarId=PYTHON_LYCEE_ID,
-#             timeMin=now,
-#             maxResults=next_nb,
-#             singleEvents=True,
-#             orderBy="startTime",
-#         )
-#         .execute()
-#     )
-#     events = events_result.get("items", [])
-#
-#     if display:
-#         print("Getting the upcoming 10 events")
-#         if not events:
-#             print("No upcoming events found.")
-#         for event in events:
-#             details_list = {}
-#             start = event["start"].get(
-#                 "dateTime",
-#                 event["start"].get("date"),
-#             )
-#             details_list["start"] = start
-#             details_list["end"] = event["end"].get(event["end"].get("date"))
-#             details_list["summary"] = event["summary"]
-#             if "description" in event:
-#                 details_list["description"] = event["description"]
-#             details_list["etag"] = event["etag"]
-#
-#             # print(start, end, description, event['summary'])
-#             # pprint(details_list)
-#
-#             print("\nevent complete :\n")
-#             # pprint(event)
-#     return events
-
-
-# def get_calendar_list(display=False):
-#     """
-#     List the calendars for given credentials
-#     """
-#     service = build_service()
-#
-#     calendar_results = service.calendarList().list().execute()
-#     calendars = calendar_results.get("items", [])
-#     if display:
-#         print("\nCalendar List : \n")
-#         if not calendars:
-#             print("No Calendars found.")
-#         for calendar_list_entry in calendars:
-#             pprint(calendar_list_entry)
-#     return calendars
-
-
 def update_event(
     service: Resource,
-    event_details: Event,
-    eventId: Optional[str] = None,
-    existing_event: Optional[dict[str, dict[str, str]]] = None,
-    update_description: bool = False,
+    new_event: Event,
+    old_event: Event,
 ) -> None:
     """
     Update the details of an event.
@@ -314,45 +177,22 @@ def update_event(
 
 
     @param event_details: (dict) les attributs de l'événements à mettre à jour
-    @param eventId: (str) l'id
-    @param existing_event: (google api event object) the event itself
-    @param service: (google api ressource service object) the service object
-    @param update_description : (bool) doit on cumuler la description ou
-        la remplacer ?
+    @param new_event: (Event) the new event to push
+    @param old_event: (Event) the old event to update
     @returns: (None)
     """
-    if eventId is None and existing_event is None:
-        raise ValueError("You must provide the event or its eventId")
+    old_event.update(new_event)
 
-    if existing_event is None and eventId is not None:
-        existing_event = get_existing_event(service, eventId)
-
-    if existing_event is None:
-        raise ValueError(
-            f"event unknown - eventId: {eventId}, event_details: {event_details}"
-        )
-
-    if update_description:
-        old_desc = get_event_property(existing_event, "description")
-        if old_desc:
-            event_details["description"] = old_desc + event_details.description
-
-    for attribute, value in event_details.into_dict().items():
-        existing_event[attribute] = value
-
-    updated_event = (
+    updated_data = (
         service.events()
         .update(
             calendarId=PYTHON_LYCEE_ID,
-            eventId=existing_event["id"],
-            body=existing_event,
+            eventId=old_event.id,
+            body=old_event.__dict__,
         )
         .execute()
     )
-
-    # Print the updated date.
-
-    update_event_msg = "updated the event: {}".format(updated_event["htmlLink"])
+    update_event_msg = "updated the event: {}".format(updated_data["htmlLink"])
     print(update_event_msg)
     logger.warning(update_event_msg)
 
@@ -392,15 +232,15 @@ def update_or_create_event(
     else:
         update_event(
             service=service,
-            event_details=event_details,
-            existing_event=existing_event,
+            new_event=event_details,
+            old_event=existing_event,
         )
 
 
 def get_first_event_from_event_date(
-    event: dict[str, dict[str, str]],
+    event: Event,
     service: Resource,
-) -> Optional[dict[str, dict[str, str]]]:
+) -> Optional[Event]:
     """
     Look for an event by given dates in calendar.
     If one is found, return the event.
@@ -425,8 +265,9 @@ def get_first_event_from_event_date(
         )
         .execute()
     )
-    events = events_from_googleapi.get("items", [None])
-    return events[0]
+    first_event = events_from_googleapi.get("items", [None])[0]
+    if first_event is not None:
+        return Event.from_dict(first_event)
 
 
 def create_event(
@@ -444,7 +285,7 @@ def create_event(
         service.events()
         .insert(
             calendarId=PYTHON_LYCEE_ID,
-            body=event_details.into_dict(),
+            body=event_details.__dict__,
         )
         .execute()
     )
