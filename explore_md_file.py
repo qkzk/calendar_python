@@ -13,11 +13,14 @@ each event is a dic and has the keys :
 
 """
 
-from typing import Optional
+from pprint import pprint
+from typing import Optional, Union
 import datetime
 
 import markdown
 import pytz
+
+from model import Event
 
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
@@ -157,7 +160,7 @@ def get_current_year(md_month: str) -> int:
     return year
 
 
-def get_events_from_str(
+def parse_events(
     events_dic_str_from_lines: dict[datetime.datetime, str]
 ) -> dict[datetime.datetime, list[dict[str, list[str]]]]:
     """
@@ -197,25 +200,26 @@ def get_events_from_str(
                 location = first_string_list[1]
             else:
                 location = ""
-            event = {
+            event_dict = {
                 "start": start,
                 "end": end,
                 "location": location,
             }
             if len(first_string_list) > 2:
                 student_class = first_string_list[2]
-                event["summary"] = student_class
+                event_dict["summary"] = student_class
             else:
-                event["summary"] = "%"
-            color_retrieved = get_event_color(event["summary"])
+                event_dict["summary"] = "%"
+            color_retrieved = get_event_color(event_dict["summary"])
             if color_retrieved:
-                event["colorId"] = color_retrieved
-                print(event["colorId"])
+                event_dict["colorId"] = color_retrieved
+                print(event_dict["colorId"])
             if len(first_line) > 1:
                 description = "\n".join(string_event[1:])
                 description = description.strip()
                 description_html = get_html(description)
-                event["description"] = description_html
+                event_dict["description"] = description_html
+            event = Event.from_dict(event_dict)
             event_list.append(event)
         event_per_date[dt_key] = event_list
     return event_per_date
@@ -315,13 +319,11 @@ def format_dt_for_event(time_of_event: datetime.datetime) -> str:
     """
 
     offset = get_offset_at_given_date(time_of_event)
-
-    # time_format = "%Y-%m-%dT%H:%M:00+02:00"
     time_format = f"%Y-%m-%dT%H:%M:00+0{offset}:00"
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
-def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
+def parse_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
     """
     Extract the events from lines of a file
 
@@ -347,7 +349,7 @@ def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
             if line_nb >= nb_file_lines:
                 break
             line = file_lines[line_nb]
-            while line.startswith("*") or line.startswith("-"):
+            while line.startswith(("*", "-")):
                 # we extract the events from the day
                 events_list_from_day.append([line.strip()])
                 line_nb += 1
@@ -366,8 +368,9 @@ def get_event_from_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
 
 
 def extract_events_from_file(
-    path: Optional[str] = None, verbose=True
-) -> list[dict[str, dict[str, str]]]:
+    path: Optional[str] = None,
+    verbose: bool = True,
+) -> list[dict[str, Event]]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
@@ -388,15 +391,11 @@ def extract_events_from_file(
         print("PATH NOT PROVIDED USING DEFAULT PATH")
         path = example_week_md_path
     file_lines = read_md_file_lines(path)
-    # pprint(file_lines)
-    events_dic_str_from_lines = get_event_from_lines(file_lines)
-    # pprint(events_dic_str_from_lines)
-    events_from_str = get_events_from_str(events_dic_str_from_lines)
-    # pprint(events_from_str)
-    nested_events = list(events_from_str.values())
-    flat_events = [item for sublist in nested_events for item in sublist]
+    dict_str_from_lines = parse_lines(file_lines)
+    events_from_str = parse_events(dict_str_from_lines)
+    flat_events = [item for sublist in events_from_str.values() for item in sublist]
     if verbose:
-        print(flat_events)
+        pprint(flat_events)
     return flat_events
 
 

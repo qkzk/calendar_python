@@ -31,6 +31,7 @@ import pytz
 import explore_md_file
 from arguments_parser import read_arguments
 from calendar_id import PYTHON_LYCEE_ID
+from model import Event
 
 CURRENT_YEAR = 2022
 
@@ -301,7 +302,7 @@ def get_existing_event(
 
 def update_event(
     service: Resource,
-    event_details: dict,
+    event_details: Event,
     eventId: Optional[str] = None,
     existing_event: Optional[dict[str, dict[str, str]]] = None,
     update_description: bool = False,
@@ -334,9 +335,9 @@ def update_event(
     if update_description:
         old_desc = get_event_property(existing_event, "description")
         if old_desc:
-            event_details["description"] = old_desc + event_details["description"]
+            event_details["description"] = old_desc + event_details.description
 
-    for attribute, value in event_details.items():
+    for attribute, value in event_details.into_dict().items():
         existing_event[attribute] = value
 
     updated_event = (
@@ -409,8 +410,8 @@ def get_first_event_from_event_date(
     @return: (google api event object) description of the event if it already
         exists
     """
-    timeMin = event["start"]["dateTime"]
-    timeMax = event["end"]["dateTime"]
+    timeMin = event.start["dateTime"]
+    timeMax = event.end["dateTime"]
 
     events_from_googleapi = (
         service.events()
@@ -430,7 +431,7 @@ def get_first_event_from_event_date(
 
 def create_event(
     service: Resource,
-    event_details: dict[str, dict[str, str]],
+    event_details: Event,
 ) -> None:
     """
     Create a new event with given details
@@ -443,7 +444,7 @@ def create_event(
         service.events()
         .insert(
             calendarId=PYTHON_LYCEE_ID,
-            body=event_details,
+            body=event_details.into_dict(),
         )
         .execute()
     )
