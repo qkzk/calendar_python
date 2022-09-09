@@ -211,7 +211,7 @@ def sync_event_from_md(
 
 def update_or_create_event(
     service: Resource,
-    event_details: dict[str, dict[str, str]],
+    event_details: Event,
 ) -> None:
     """
     Sync a single event read from a .md file.
@@ -265,9 +265,9 @@ def get_first_event_from_event_date(
         )
         .execute()
     )
-    first_event = events_from_googleapi.get("items", [None])[0]
-    if first_event is not None:
-        return Event.from_dict(first_event)
+    events = events_from_googleapi.get("items", [])
+    if events:
+        return Event.from_dict(events[0])
 
 
 def create_event(

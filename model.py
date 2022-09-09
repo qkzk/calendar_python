@@ -1,6 +1,5 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Union
 
 
 @dataclass
@@ -31,7 +30,7 @@ class Event:
             location=event_dict.get("location", ""),
             summary=event_dict["summary"],
             description=event_dict.get("description", ""),
-            colorId=event_dict["colorId"],
+            colorId=event_dict.get("colorId", "11"),
             htmlLink=event_dict.get("htmlLink", ""),
         )
         cls.raise_if_invalid(event)

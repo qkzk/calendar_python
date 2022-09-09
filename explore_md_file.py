@@ -162,7 +162,7 @@ def get_current_year(md_month: str) -> int:
 
 def parse_events(
     events_dic_str_from_lines: dict[datetime.datetime, str]
-) -> dict[datetime.datetime, list[dict[str, Event]]]:
+) -> dict[datetime.datetime, list[Event]]:
     """
     loop through the lines and extract the events
     return them as a dict of datetime: list of events
@@ -370,7 +370,7 @@ def parse_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
 def extract_events_from_file(
     path: Optional[str] = None,
     verbose: bool = True,
-) -> list[dict[str, Event]]:
+) -> list[Event]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
