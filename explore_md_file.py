@@ -87,8 +87,10 @@ STUDENT_CLASS_COLORS = {
     "3": ["réunion", "reunion", "conseil", "PP", "default"],
 }
 
+DEFAULT_COLOR = "11"
 
-def get_event_color(string: str) -> Optional[str]:
+
+def get_event_color(string: str) -> str:
     """
     Search for keywords in the description of the event.
     Return the color number (string) if something is found
@@ -101,7 +103,7 @@ def get_event_color(string: str) -> Optional[str]:
         for tag in tags:
             if tag.lower() in string.lower():
                 return nb
-    return None
+    return DEFAULT_COLOR
 
 
 def read_md_file_lines(path: str) -> list[str]:
@@ -115,7 +117,7 @@ def read_md_file_lines(path: str) -> list[str]:
         return f.readlines()
 
 
-def get_date_from_line(line: str) -> datetime.datetime:
+def parse_date(line: str) -> datetime.datetime:
     """
     Extract the date from a line :
     ## Lundi 02 septembre   -----> 2019-09-02 00:00:00
@@ -124,17 +126,12 @@ def get_date_from_line(line: str) -> datetime.datetime:
     @param line: (str) a line from the .md file
     @return: (datetime.datetime obj) a datetime at midnight (ie a date)
     """
-    # new date
-    date_str = line[3:]
-    date_list = date_str.strip().split(" ")
-    # print(date_list)
-    # day_of_the_week = traduction_day[date_list[0]]
-    day_nb = date_list[1]
+    date_list = line[3:].strip().split(" ")
+    day = date_list[1]
     month = TRADUCTION_MONTH[date_list[2]]
     year = get_current_year(month)
-    date_str_strp = "-".join([month, day_nb])
-    date_str_strp = str(year) + "-" + date_str_strp
-    date_day = datetime.datetime.strptime(date_str_strp, "%Y-%B-%d")
+    date_str = f"{year}-{month}-{day}"
+    date_day = datetime.datetime.strptime(date_str, "%Y-%B-%d")
 
     return date_day
 
@@ -150,14 +147,13 @@ def get_current_year(md_month: str) -> int:
     @param md_month: (str)
     @return: (int)
     """
-    # TODO : ugly
     now = datetime.datetime.now()
-    year = now.year
-    month = now.month
-    if md_month in MONTHES_END_YEAR and month in range(8, 13):
+    current_year = now.year
+    current_month = now.month
+    if md_month in MONTHES_END_YEAR and current_month in range(8, 13):
         # is it before or after the end of civil year ?
-        year += 1
-    return year
+        current_year += 1
+    return current_year
 
 
 def parse_events(
@@ -211,14 +207,10 @@ def parse_events(
             else:
                 event_dict["summary"] = "%"
             color_retrieved = get_event_color(event_dict["summary"])
-            if color_retrieved:
-                event_dict["colorId"] = color_retrieved
-                print(event_dict["colorId"])
+            event_dict["colorId"] = color_retrieved
             if len(first_line) > 1:
-                description = "\n".join(string_event[1:])
-                description = description.strip()
-                description_html = get_html(description)
-                event_dict["description"] = description_html
+                description = "\n".join(string_event[1:]).strip()
+                event_dict["description"] = get_html(description)
             event = Event.from_dict(event_dict)
             event_list.append(event)
         event_per_date[dt_key] = event_list
@@ -343,7 +335,7 @@ def parse_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
         if line.startswith("##"):
             # it's a new day...
             events_list_from_day = []
-            date_day = get_date_from_line(line)
+            date_day = parse_date(line)
             # next line must be blank
             line_nb += 2
             if line_nb >= nb_file_lines:
