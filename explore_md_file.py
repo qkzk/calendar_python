@@ -28,7 +28,6 @@ COLORS = {
 
 """
 
-from pprint import pprint
 from typing import Optional, Union
 import datetime
 
@@ -198,7 +197,6 @@ def get_hours_minute(time_str: str) -> tuple[int, int]:
     """
     time_list = time_str.split("h")
     time_hour = int(time_list[0])
-    print(time_list)
     time_minute = 0 if time_list[1] == "" else int(time_list[1])
     return time_hour, time_minute
 
@@ -421,7 +419,4 @@ def parse_events(
 
 
 if __name__ == "__main__":
-    # events = extract_events_from_file()
-    # pprint(events)
-
     print(parse_color_id("2ND9"))
