@@ -353,7 +353,7 @@ def get_md_path_from_args_or_user(
     """
     Create the path from the args and ask the user what he wants to do.
     @param reset_path: (bool) do we have to reset the path ?
-    @return: (str) the path to the md file
+    @return: tuple[Union(str, Any), list[Union[int, Any]]] a pair with period number (1-5) and corresponding weeks
     """
     print(color_text(WARNING_MSG, "DARKCYAN"))
 
@@ -418,6 +418,15 @@ def ask_user_week(period_path: str) -> list[int]:
 def convert_numbers_to_path(
     period_number: str, week_list: list[int], arguments: argparse.Namespace
 ) -> list[str]:
+    """
+    Convert the period number and week list into a valid path.
+    If the user provided args with correspoding period and weeks, we read it from there.
+
+    @param period_number: (str) Castable into int 1, ..., 5
+    @param week_list: (list[int]) can be empty
+    @param arguments: (argparse.Namespace) provided args
+    @return: (list[str]) the corresponding path
+    """
     # we now have a complete path
     path_list = []
     for week_number in week_list:
@@ -447,11 +456,12 @@ def convert_week_numbers(week_numbers: list[str]) -> list[int]:
 
 def warn_and_get_path(arguments: argparse.Namespace) -> list[str]:
     """
-    Warn the user about what's he's going to do and return the path provided
+    Warn the user about what's he's going to do and return the paths provided
     by the user.
     If no path is provided in the args, keep asking the user for a new one.
 
-    @return: (str) the path to the md file
+    @param: (argparse.Namespace) provided args
+    @return: (list[str]) the path to the md file
     """
     print(color_text(WELCOME_MSG, "DARKCYAN"))
     print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
@@ -485,6 +495,14 @@ def interactive_mode(
     input_warning: str,
     arguments: argparse.Namespace,
 ) -> list[str]:
+    """
+    Used when no path could be read from arguments.
+
+    @param path_list: list[str] provided path list. Could be empty.
+    @param reset_path: (bool) should we reset this path ?
+    @param arguments: (argparse.Namespace) provided args
+    @return: (list[str]) the paths
+    """
     while user_provides_invalid_input(path_list, input_warning):
         period_number, week_list = get_md_path_from_args_or_user(
             arguments, reset_path=reset_path
@@ -523,38 +541,6 @@ def user_provides_invalid_input(
     @param input_warning: (str) "y" or another inputed string.
     """
     return not path_list or input_warning != "y"
-
-
-# def test_functions():
-#     """
-#     Used to test some functions
-#     """
-#     # display event list
-#     next_event = get_next_event_list(next_nb=10, display=True)
-#
-#     # calendar list id
-#     calendars = get_calendar_list(display=True)
-#
-#     # Find the next event after a date
-#     dt = datetime.datetime(2019, 8, 9, 14, 0)
-#     print("\n next event")
-#     next_event = find_next_event_by_date(dt)
-#     pprint(next_event)
-#
-#     # update the next_event
-#     eventId = get_event_property(next_event, "id", display=True)
-#
-#     event_details = {}
-#     event_details["location"] = "213"
-#     event_details["description"] = text_description_example
-#
-#     # update_event(event_details, eventId=eventId,  update_description=True)
-#     update_event(event_details, event=next_event, update_description=True)
-#
-#     # test_uploads_from_md
-#     # print()
-#     path = explore_md_file.example_week_md_path
-#     sync_event_from_md(path)
 
 
 def create_or_update_week_events() -> None:
@@ -604,7 +590,11 @@ def create_or_update_week_events() -> None:
 
 
 def create_logger() -> logging.Logger:
-    """Creates a rotating file_handler logger."""
+    """
+    Creates a rotating file_handler logger.
+
+    @return: (logging.Logger) the rotating file handler logger
+    """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
