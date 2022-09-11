@@ -11,6 +11,7 @@ description:
 
 from os import listdir
 from os.path import isfile, join
+from pprint import pprint
 from typing import Any, Optional, Union
 
 import argparse
@@ -204,7 +205,8 @@ def sync_event_from_md(
     """
     Create or update events from md file
     """
-    event_list = explore_md_file.extract_events_from_file(path)
+    event_list = explore_md_file.parse_events(path)
+    pprint(event_list)
     for event_details in event_list:
         update_or_create_event(service, event_details)
 

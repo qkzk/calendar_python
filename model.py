@@ -6,6 +6,14 @@ from dataclasses import dataclass
 class Event:
     """
     Holds usefull infos about google calendar Events
+    each event has the attributes :
+    * 'start':datetime,
+    * 'end':datetime,
+    * 'location':str
+    * 'summary':str ('%' if no summary were given)
+    * 'description':str (possibly empty or multiline)
+    * 'colorId':str ('1' to '11')
+
     """
 
     id: str

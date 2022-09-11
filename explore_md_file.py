@@ -11,10 +11,25 @@ each event is a dic and has the keys :
             * 'description':str (possibly empty or multiline)
             * 'colorId':str ('1' to '11')
 
+COLORS = {
+    # rainbow order
+    "11": "#dc2127",  # rouge
+    "4":  "#ff887c",  # Rosé
+    "6":  "#ffb878",  # orange clair
+    "5":  "#fbd75b",  # Jaune un peu foncé
+    "10": "#51b749",  # vert clair
+    "2":  "#7ae7bf",  # jade
+    "7":  "#46d6db",  # bleu clair
+    "9":  "#5484ed",  # bleu foncé
+    "1":  "#a4bdfc",  # Bleu pale
+    "3":  "#dbadff",  # Violet clair
+    "8":  "#e1e1e1",  # gris clair
+}
+
 """
 
 from pprint import pprint
-from typing import Optional
+from typing import Optional, Union
 import datetime
 
 import markdown
@@ -24,16 +39,6 @@ from model import Event
 
 example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
-TRADUCTION_DAY = {
-    # on pourrait utiliser des locales et traduire automatiquement...
-    "Lundi": "Monday",
-    "Mardi": "Tuesday",
-    "Mercredi": "Wednesday",
-    "Jeudi": "Thursday",
-    "Vendredi": "Friday",
-    "Samedi": "Saturday",
-    "Dimanche": "Sunday",
-}
 
 TRADUCTION_MONTH = {
     "janvier": "January",
@@ -60,21 +65,6 @@ MONTHES_END_YEAR = [
     "July",
 ]
 
-COLORS = {
-    # rainbow order
-    "11": "#dc2127",  # rouge
-    "4": "#ff887c",  # Rosé
-    "6": "#ffb878",  # orange clair
-    "5": "#fbd75b",  # Jaune un peu foncé
-    "10": "#51b749",  # vert clair
-    "2": "#7ae7bf",  # jade
-    "7": "#46d6db",  # bleu clair
-    "9": "#5484ed",  # bleu foncé
-    "1": "#a4bdfc",  # Bleu pale
-    "3": "#dbadff",  # Violet clair
-    "8": "#e1e1e1",  # gris clair
-}
-
 STUDENT_CLASS_COLORS = {
     "2": ["ISN", "tale nsi"],
     "1": ["1ere NSI"],
@@ -87,26 +77,14 @@ STUDENT_CLASS_COLORS = {
     "3": ["réunion", "reunion", "conseil", "PP", "default"],
 }
 
+TIMEZONE = "Europe/Paris"
+
 DEFAULT_COLOR = "11"
 
-
-def get_event_color(string: str) -> str:
-    """
-    Search for keywords in the description of the event.
-    Return the color number (string) if something is found
-
-    @param string: (str) the description of the event
-    @return: (str or None) the
-    """
-    string = string.lower()
-    for nb, tags in STUDENT_CLASS_COLORS.items():
-        for tag in tags:
-            if tag.lower() in string.lower():
-                return nb
-    return DEFAULT_COLOR
+MD_LI_TOKENS = ("-", "*", "+")
 
 
-def read_md_file_lines(path: str) -> list[str]:
+def get_lines_from(path: str) -> list[str]:
     """
     open a file and return the list of lines as str
 
@@ -156,68 +134,7 @@ def get_current_year(md_month: str) -> int:
     return current_year
 
 
-def parse_events(
-    events_dic_str_from_lines: dict[datetime.datetime, str]
-) -> dict[datetime.datetime, list[Event]]:
-    """
-    loop through the lines and extract the events
-    return them as a dict of datetime: list of events
-
-    @param events_dic_str_from_lines : (dict)
-        key: (str) a datetime key
-        formated like :
-
-    * 8h-8h55 - s213 - 2nde 3
-    * corriger exo machin chose
-    * rendre devoir
-    rendre travail truc
-    @return: (list) the events of that date datetime: list of events
-        each event has the keys :
-            * 'start':datetime,
-            * 'end':datetime,
-            * 'location':str
-            * 'summary':str ('%' if no summary were given)
-            * 'description':str (possibly empty or multiline)
-            * 'colorId':str ('1' to '11')
-    """
-    event_per_date = {}
-    for dt_key, string_list in events_dic_str_from_lines.items():
-        # print(dt_key, string_list)
-        event_list = []
-        for string_event in string_list:
-            first_line = string_event[0]
-            # * 8h55-9h50 - s215
-            first_string_list = first_line.strip().split(" - ")
-            # print(first_string_list)
-
-            hours = first_string_list[0]
-            start, end = get_hours(dt_key, hours)
-            if len(first_string_list) > 1:
-                location = first_string_list[1]
-            else:
-                location = ""
-            event_dict = {
-                "start": start,
-                "end": end,
-                "location": location,
-            }
-            if len(first_string_list) > 2:
-                student_class = first_string_list[2]
-                event_dict["summary"] = student_class
-            else:
-                event_dict["summary"] = "%"
-            color_retrieved = get_event_color(event_dict["summary"])
-            event_dict["colorId"] = color_retrieved
-            if len(first_line) > 1:
-                description = "\n".join(string_event[1:]).strip()
-                event_dict["description"] = get_html(description)
-            event = Event.from_dict(event_dict)
-            event_list.append(event)
-        event_per_date[dt_key] = event_list
-    return event_per_date
-
-
-def get_html(description: str) -> str:
+def format_html(description: str) -> str:
     """
     format a string from markdown to html
     @param description: (str) mardkdown formated string
@@ -227,7 +144,7 @@ def get_html(description: str) -> str:
     return description_html
 
 
-def get_hours(
+def parse_hours(
     dt_key: datetime.datetime, hours: str
 ) -> tuple[dict[str, str], dict[str, str]]:
     """
@@ -246,11 +163,11 @@ def get_hours(
             'timeZone': 'Europe/Paris',
             }
         end = {
-        'dateTime': '2019-08-09T15:00:00+02:00'}
-        'timeZone': 'Europe/Paris',
+            'dateTime': '2019-08-09T15:00:00+02:00',
+            'timeZone': 'Europe/Paris',
         }
     """
-    hours = hours[2:]
+    hours = hours.strip("*").strip()
     hours_list = hours.split("-")
 
     start_str = hours_list[0]
@@ -263,11 +180,11 @@ def get_hours(
     month = dt_key.month
     day = dt_key.day
 
-    start = datetime.datetime(year, month, day, start_hour, start_minute)
-    end = datetime.datetime(year, month, day, end_hour, end_minute)
+    start_dt = datetime.datetime(year, month, day, start_hour, start_minute)
+    end_dt = datetime.datetime(year, month, day, end_hour, end_minute)
 
-    start = {"dateTime": format_dt_for_event(start), "timeZone": "Europe/Paris"}
-    end = {"dateTime": format_dt_for_event(end), "timeZone": "Europe/Paris"}
+    start = {"dateTime": format_dt_for_event(start_dt), "timeZone": TIMEZONE}
+    end = {"dateTime": format_dt_for_event(end_dt), "timeZone": TIMEZONE}
 
     return start, end
 
@@ -281,6 +198,7 @@ def get_hours_minute(time_str: str) -> tuple[int, int]:
     """
     time_list = time_str.split("h")
     time_hour = int(time_list[0])
+    print(time_list)
     time_minute = 0 if time_list[1] == "" else int(time_list[1])
     return time_hour, time_minute
 
@@ -315,84 +233,195 @@ def format_dt_for_event(time_of_event: datetime.datetime) -> str:
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
-def parse_lines(file_lines: list[str]) -> dict[datetime.datetime, str]:
+def get_days_indexes(lines: list[str]) -> list[int]:
     """
-    Extract the events from lines of a file
+    Returns the line number of line describing a day.
 
-    Return them as a dic of list of dic (to be flattened)
-    see other functions for more detailled description of the events
-
-    @param file_lines: (list of str) the lines of the md file
-    @return : (dic)
+    @param lines: (list[str]) the lines of the .md file
+    @return: (list[int]) list of line indexes
     """
-    events_dic_str_from_lines = {}
-
-    nb_file_lines = len(file_lines)
-
-    for line_nb in range(nb_file_lines):
-        line = file_lines[line_nb]
-
-        if line.startswith("##"):
-            # it's a new day...
-            events_list_from_day = []
-            date_day = parse_date(line)
-            # next line must be blank
-            line_nb += 2
-            if line_nb >= nb_file_lines:
-                break
-            line = file_lines[line_nb]
-            while line.startswith(("*", "-")):
-                # we extract the events from the day
-                events_list_from_day.append([line.strip()])
-                line_nb += 1
-                line = file_lines[line_nb]
-                while line.startswith("  ") or line in ["\n", "\r\n"]:
-                    # each description must be INSIDE the event so
-                    # spaces must be present at the beginning of the line
-                    events_list_from_day[-1].append(line.strip())
-                    line_nb += 1
-                    line = file_lines[line_nb]
-            events_dic_str_from_lines[date_day] = events_list_from_day
-
-        line_nb += 1
-        # sunday is ommited if empty
-    return events_dic_str_from_lines
+    return [line_nr for line_nr, line in enumerate(lines) if line.startswith("## ")]
 
 
-def extract_events_from_file(
-    path: Optional[str] = None,
-    verbose: bool = True,
+def split_day_lines(lines: list[str]) -> dict[datetime.datetime, list[str]]:
+    """
+    Returns a dict of date : lines
+
+    @param lines: (list[str]) whole content of .md file
+    @param days_index: (list[int]) line indexes of days
+    @return: (dict[datetime, list[str]]) the pairs date, lines
+    """
+    days_index = get_days_indexes(lines)
+    dict_day_lines = {}
+    for i in range(len(days_index)):
+        start = days_index[i]
+        end = days_index[i + 1] if i + 1 < len(days_index) else len(lines)
+        day_lines = lines[slice(start + 1, end)]
+        dict_day_lines[parse_date(lines[start])] = day_lines
+    return dict_day_lines
+
+
+def parse_day_events(
+    dict_day_lines: dict[datetime.datetime, list[str]],
+) -> list[Event]:
+    """
+    Extract the events for a day.
+
+    @param dict_day_lines: (dict[datetime.datetime, list[str]]) strings per day.
+    @return: (list[event])
+    """
+    events = []
+    for dt, lines in dict_day_lines.items():
+        events.extend(read_day_events(dt, split_day_events(lines)))
+    return events
+
+
+def parse_location(summary_strings: list[str]) -> str:
+    """
+    Extract the location of the event.
+
+    @param summary_strings: (list[str])
+    @return: (str)
+    """
+    return summary_strings[1] if len(summary_strings) > 1 else ""
+
+
+def parse_summary(summary_strings: list[str]) -> str:
+    """
+    Extract the summary for a list of strings.
+
+    @param summary_strings: (list[str]) list of string for a summary.
+        The first line should be blank
+    @return: (str) joined summary, without the blank line.
+    """
+    if len(summary_strings) <= 2:
+        return "%"
+    return summary_strings[2]
+
+
+def parse_color_id(summary: str) -> str:
+    """
+    Search for keywords in the description of the event.
+    Return the color number (string) if something is found
+
+    @param summary: (str) the description of the event
+    @return: (str or None) the
+    """
+    summary = summary.lower()
+    for nb, tags in STUDENT_CLASS_COLORS.items():
+        for tag in tags:
+            if tag.lower() in summary.lower():
+                return nb
+    return DEFAULT_COLOR
+
+
+def parse_first_line(
+    dt: datetime.datetime,
+    summary_strings: list[str],
+) -> dict[str, Union[str, dict[str, str]]]:
+    """
+    Parse the first line of a event string into a dict.
+    @param dt:(datetime.datetime) event date
+    @param summary_strings: (str) the first line :
+        - 6h40-7h14 - gare - train
+    @return: (dict[str, Union[str, dict[str, str]]])
+    with keys:
+    * start,
+    * end,
+    * location,
+    * corlorId
+    """
+
+    start, end = parse_hours(dt, summary_strings[0])
+    location = parse_location(summary_strings)
+    summary = parse_summary(summary_strings)
+    color_id = parse_color_id(summary)
+
+    return {
+        "start": start,
+        "end": end,
+        "location": location,
+        "summary": summary,
+        "colorId": color_id,
+    }
+
+
+def parse_description(lines: list[str]) -> Optional[str]:
+    """
+    Extract a description from the list of strings, if any.
+    @param lines: (list[str]) lines describing an event
+    @return: (Optional[str]) the joined lines of the event.
+    """
+    if len(lines) > 0:
+        body_line = lines[1:]
+        description = "\n".join(body_line[1:]).strip()
+        return format_html(description)
+
+
+def parse_event(
+    dt: datetime.datetime,
+    lines: list[str],
+) -> Event:
+    """
+    Parse an event from its line and a date.
+    @param dt:(datetime.datetime) the date of the event
+    @param lines: (list[str]) lines of the event
+    @return: (Event) Complete Event, ready to be pushed.
+    """
+    event_dict = parse_first_line(dt, lines[0].strip().split(" - "))
+    description = parse_description(lines)
+    if description is not None:
+        event_dict["description"] = description
+
+    return Event.from_dict(event_dict)
+
+
+def read_day_events(
+    dt: datetime.datetime,
+    splitted_events: list[list[str]],
+) -> list[Event]:
+    """
+    Returns a list of Event for that day.
+    @param dt: (datetime.datetime) the day
+    @param split_events: (list[list[str]) event for that day, per day event.
+    @return: (list[Event]) the events of that day
+    """
+    return [parse_event(dt, lines) for lines in splitted_events if lines]
+
+
+def split_day_events(lines: list[str]) -> list[list[str]]:
+    """
+    Split the list of lines per day into lines per event per day.
+    @param lines: (list[str]) lines for a day
+    @return: (list[list[str]]) list of string lines per event
+    """
+    pack = [[]]
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if line.startswith(MD_LI_TOKENS):
+            pack.append([line[2:]])
+        elif not line.startswith("\n"):
+            pack[-1].append(line)
+        index += 1
+    return pack
+
+
+def parse_events(
+    path: str,
 ) -> list[Event]:
     """
     Extract all the events of a week, given by a md file
     see example_week_md_path file for a given format
 
     @param path: (str) path of the .md file
-    @return : (list) all the events of a given week
-    each event has the keys :
-            * 'start':datetime,
-            * 'end':datetime,
-            * 'location':str
-            * 'summary':str ('%' if no summary were given)
-            * 'description':str (possibly empty or multiline)
-            * 'colorId':str ('1' to '11')
-
+    @return : (list[Event]) all the events of a given week
     """
-    if not path:
-        # example mode
-        print("PATH NOT PROVIDED USING DEFAULT PATH")
-        path = example_week_md_path
-    file_lines = read_md_file_lines(path)
-    dict_str_from_lines = parse_lines(file_lines)
-    events_from_str = parse_events(dict_str_from_lines)
-    flat_events = [item for sublist in events_from_str.values() for item in sublist]
-    if verbose:
-        pprint(flat_events)
-    return flat_events
+    return parse_day_events(split_day_lines(get_lines_from(path)))
 
 
 if __name__ == "__main__":
     # events = extract_events_from_file()
     # pprint(events)
 
-    print(get_event_color("2ND9"))
+    print(parse_color_id("2ND9"))
