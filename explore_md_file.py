@@ -344,16 +344,13 @@ def parse_first_line(
     }
 
 
-def parse_description(lines: list[str]) -> Optional[str]:
+def parse_description(lines: list[str]) -> str:
     """
     Extract a description from the list of strings, if any.
     @param lines: (list[str]) lines describing an event
     @return: (Optional[str]) the joined lines of the event.
     """
-    if len(lines) > 0:
-        body_line = lines[1:]
-        description = "\n".join(body_line[1:]).strip()
-        return format_html(description)
+    return format_html("\n".join(line.strip() for line in lines[1:] if line.strip()))
 
 
 def parse_event(
