@@ -28,15 +28,13 @@ COLORS = {
 
 """
 
-from typing import Optional, Union
+from typing import Union
 import datetime
 
 import markdown
 import pytz
 
 from model import Event
-
-example_week_md_path = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_1/semaine_36.md"
 
 
 TRADUCTION_MONTH = {

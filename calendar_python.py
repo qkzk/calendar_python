@@ -22,19 +22,18 @@ import os.path
 import pickle
 import sys
 
-from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import Resource, build
 
 import pytz
 
-import explore_md_file
+from explore_md_file import parse_events
 from arguments_parser import read_arguments
-from calendar_id import PYTHON_LYCEE_ID
+from config import CALENDAR_ID, CURRENT_YEAR, GIT_COURS_REPO_PATH
 from model import Event
 
-CURRENT_YEAR = 2022
 
 # constants
 TEXT_COLORS = {
@@ -113,19 +112,9 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 # Google Calendar settings
 TZ = pytz.timezone("Europe/Paris")
 
-# variables
-text_description_example = """<ul><li>voila voila</li><li>revoila</li></ul>"""
-# Example path, for testing
-# default_path_md = "/home/quentin/gdrive/dev/python/boulot_utils/cahier_texte_generator/calendrier/2019/periode_{}/semaine_{}.md"
-# Real path
-
-GIT_COURS_REPO_PATH = "/home/quentin/gdrive/cours/git_cours/cours/"
-
 PERIOD_LIST = range(1, 6)
 PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
 default_path_md = PERIOD_PATH + "semaine_{}.md"
-
-# GOOGLE API FUNCTIONS
 
 
 def get_credentials() -> Union[Credentials, Any]:
@@ -187,7 +176,7 @@ def update_event(
     updated_data = (
         service.events()
         .update(
-            calendarId=PYTHON_LYCEE_ID,
+            calendarId=CALENDAR_ID,
             eventId=old_event.id,
             body=old_event.__dict__,
         )
@@ -205,7 +194,7 @@ def sync_event_from_md(
     """
     Create or update events from md file
     """
-    event_list = explore_md_file.parse_events(path)
+    event_list = parse_events(path)
     pprint(event_list)
     for event_details in event_list:
         update_or_create_event(service, event_details)
@@ -258,7 +247,7 @@ def get_first_event_from_event_date(
     events_from_googleapi = (
         service.events()
         .list(
-            calendarId=PYTHON_LYCEE_ID,
+            calendarId=CALENDAR_ID,
             timeMin=timeMin,
             timeMax=timeMax,
             maxResults=1,
@@ -267,8 +256,8 @@ def get_first_event_from_event_date(
         )
         .execute()
     )
-    events = events_from_googleapi.get("items", [])
-    if events:
+    events = events_from_googleapi.get("items")
+    if events is not None:
         return Event.from_dict(events[0])
 
 
@@ -286,7 +275,7 @@ def create_event(
     event = (
         service.events()
         .insert(
-            calendarId=PYTHON_LYCEE_ID,
+            calendarId=CALENDAR_ID,
             body=event_details.__dict__,
         )
         .execute()
@@ -307,8 +296,7 @@ def extract_number_from_path(week_md_filename: str) -> int:
     @param week_md_filename: (str) the name of the md file
     @return: (int)
     """
-    week_number = int(week_md_filename[:-3].split("_")[1])
-    return week_number
+    return int(week_md_filename[:-3].split("_")[1])
 
 
 def get_weeks_from_period(period_path: str) -> list[int]:
@@ -318,9 +306,8 @@ def get_weeks_from_period(period_path: str) -> list[int]:
     @param period_path: (str) the path to the period folder
     @return: (list of int) the list of the weeks in that period
     """
-    week_dirs_list = [f for f in listdir(period_path) if isfile(join(period_path, f))]
-    week_number_list = sorted(list(map(extract_number_from_path, week_dirs_list)))
-    return week_number_list
+    week_dirs_list = (f for f in listdir(period_path) if isfile(join(period_path, f)))
+    return sorted(list(map(extract_number_from_path, week_dirs_list)))
 
 
 def color_text(text: str, color: str = "BOLD") -> str:
@@ -606,7 +593,6 @@ def create_logger() -> logging.Logger:
         backupCount=5,
     )
     file_handler.setFormatter(formatter)
-    # add the handlers to logger
     logger.addHandler(file_handler)
     return logger
 
