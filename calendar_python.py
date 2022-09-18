@@ -256,8 +256,8 @@ def get_first_event_from_event_date(
         )
         .execute()
     )
-    events = events_from_googleapi.get("items")
-    if events is not None:
+    events = events_from_googleapi.get("items", [])
+    if events:
         return Event.from_dict(events[0])
 
 
