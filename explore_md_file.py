@@ -92,7 +92,7 @@ def get_lines_from(path: str) -> list[str]:
         return f.readlines()
 
 
-def parse_date(line: str) -> datetime.datetime:
+def parse_date_line(line: str) -> datetime.datetime:
     """
     Extract the date from a line :
     ## Lundi 02 septembre   -----> 2019-09-02 00:00:00
@@ -102,6 +102,10 @@ def parse_date(line: str) -> datetime.datetime:
     @return: (datetime.datetime obj) a datetime at midnight (ie a date)
     """
     date_list = line[3:].strip().split(" ")
+    return parse_date_list(date_list)
+
+
+def parse_date_list(date_list: list[str]) -> datetime.datetime:
     day = date_list[1]
     month = TRADUCTION_MONTH[date_list[2]]
     year = get_current_year(month)
@@ -143,30 +147,34 @@ def format_html(description: str) -> str:
 
 class AllDayEventsParsers:
     @staticmethod
-    def parse_hours(dt_key: datetime.datetime) -> tuple[dict[str, str], dict[str, str]]:
+    def parse_days(
+        dt_key: datetime.datetime, summary: list[str]
+    ) -> tuple[dict[str, str], dict[str, str]]:
         """
         Extract the start and end datetime of a given string
 
         @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
-        @param hours: (str) '* 8h55-9h50'
+        @param summary: (str) '- Lundi 9 Septembre'
         @return: (tuple) (start, end)
-            example :
-            'end': datetime.datetime(2019, 9, 2, 10, 55),
-            'start': datetime.datetime(2019, 9, 2, 10, 0),
-
 
             start = {
-                'dateTime': '2019-08-09T14:00:00+02:00',
+                'date': '2019-08-09',
                 'timeZone': 'Europe/Paris',
                 }
             end = {
-                'dateTime': '2019-08-09T15:00:00+02:00',
+                'date': '2019-08-11',
                 'timeZone': 'Europe/Paris',
             }
         """
+        print("summary", summary)
+        has_end_date = len(summary) >= 3
+        if has_end_date:
+            end_date = parse_date_list(summary[2].strip().strip("-").split(" "))
+        else:
+            end_date = dt_key
 
         start = {"date": format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
-        end = {"date": format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
+        end = {"date": format_dt_for_all_day_event(end_date), "timeZone": TIMEZONE}
 
         return start, end
 
@@ -336,7 +344,7 @@ def split_day_lines(lines: list[str]) -> dict[datetime.datetime, list[str]]:
         start = days_index[i]
         end = days_index[i + 1] if i + 1 < len(days_index) else len(lines)
         day_lines = lines[slice(start + 1, end)]
-        dict_day_lines[parse_date(lines[start])] = day_lines
+        dict_day_lines[parse_date_line(lines[start])] = day_lines
     return dict_day_lines
 
 
@@ -400,7 +408,7 @@ def parse_first_line(
     else:
         print("all day event")
         print(summary_strings)
-        start, end = AllDayEventsParsers.parse_hours(dt)
+        start, end = AllDayEventsParsers.parse_days(dt, summary_strings)
         location = AllDayEventsParsers.parse_location(summary_strings)
         summary = AllDayEventsParsers.parse_summary(summary_strings)
 
