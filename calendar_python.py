@@ -10,47 +10,23 @@ description:
 """
 
 from os import listdir
-from os.path import isfile, join
-from pprint import pprint
-from typing import Any, Optional, Union
+from os.path import isfile, join, exists
+from typing import Any, Union
 
 import argparse
-import logging
-import logging.handlers
-import os
-import os.path
-import pickle
 import sys
 
-from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import Resource, build
+from googleapiclient.discovery import Resource
 
-import pytz
-
-from explore_md_file import parse_events
 from arguments_parser import read_arguments
-from config import CALENDAR_ID, CURRENT_YEAR, GIT_COURS_REPO_PATH
-from model import Event
-
-
-# constants
-TEXT_COLORS = {
-    "PURPLE": "\033[95m",
-    "CYAN": "\033[96m",
-    "DARKCYAN": "\033[36m",
-    "BLUE": "\033[94m",
-    "GREEN": "\033[92m",
-    "YELLOW": "\033[93m",
-    "RED": "\033[91m",
-    "BOLD": "\033[1m",
-    "UNDERLINE": "\033[4m",
-    "END": "\033[0m",
-}
+from config import CURRENT_YEAR, GIT_COURS_REPO_PATH
+from colors import color_text
+from google_interaction import build_service, sync_event_from_md
+from logger import logger
 
 # messages
 WELCOME_MSG = "welcome to..."
+
 BANNER = """
 ########  ##    ## ######## ##     ##  #######  ##    ##
 ##     ##  ##  ##     ##    ##     ## ##     ## ###   ##
@@ -76,7 +52,7 @@ Create your Google Calendar Events from a .md File.
 Warnings !
 
 1. The Google Calendar Events will be updated or created
-2. The .md file must be correctly formatted or the application will crash
+2. The .md file must be correctly formated or the application will crash
 
 """
 GET_PERIOD_MSG = "Please choose a period in [1-5] : "
@@ -106,189 +82,9 @@ DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 # logs etc.
 LOGFILE = "calendar_python.log"
 
-# If modifying these scopes, delete the file token.pickle.
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
-
-# Google Calendar settings
-TZ = pytz.timezone("Europe/Paris")
-
 PERIOD_LIST = range(1, 6)
 PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
-default_path_md = PERIOD_PATH + "semaine_{}.md"
-
-
-def get_credentials() -> Union[Credentials, Any]:
-    """
-    Returns the credentials for google calendar api
-
-    @return service: (googleapiclient.discovery.Resource) le service passé
-    """
-    creds = None
-    # The file token.pickle stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists("token.pickle"):
-        with open("token.pickle", "rb") as token:
-            creds = pickle.load(token)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open("token.pickle", "wb") as token:
-            pickle.dump(creds, token)
-    return creds
-
-
-def build_service() -> Resource:
-    """
-    Return the google api client service ressource
-    Start by building the credentials if needed
-
-    @return: (googleapiclient.discovery.Resource)
-    """
-    creds = get_credentials()
-    service = build("calendar", "v3", credentials=creds)
-    return service
-
-
-def update_event(
-    service: Resource,
-    new_event: Event,
-    old_event: Event,
-) -> None:
-    """
-    Update the details of an event.
-    The event can be passed or only his id
-    If no service is given, will create the service
-
-
-    @param event_details: (dict) les attributs de l'événements à mettre à jour
-    @param new_event: (Event) the new event to push
-    @param old_event: (Event) the old event to update
-    @returns: (None)
-    """
-    old_event.update(new_event)
-
-    updated_data = (
-        service.events()
-        .update(
-            calendarId=CALENDAR_ID,
-            eventId=old_event.id,
-            body=old_event.__dict__,
-        )
-        .execute()
-    )
-    update_event_msg = "updated the event: {}".format(updated_data["htmlLink"])
-    print(update_event_msg)
-    logger.warning(update_event_msg)
-
-
-def sync_event_from_md(
-    service: Resource,
-    path: str,
-) -> None:
-    """
-    Create or update events from md file
-    """
-    event_list = parse_events(path)
-    pprint(event_list)
-    for event_details in event_list:
-        update_or_create_event(service, event_details)
-
-
-def update_or_create_event(
-    service: Resource,
-    event_details: Event,
-) -> None:
-    """
-    Sync a single event read from a .md file.
-    seek if the event already exists,
-    if there's already an event, it's updated.
-    Else, a new one is created
-
-    @param service: (Resource) the google api ressource
-    @param event_details: (dict[str, dict[str, str]]) the description of an event
-    @returns: (None)
-    """
-    existing_event = get_first_event_from_event_date(event_details, service)
-    if existing_event is None:
-        create_event(
-            service=service,
-            event_details=event_details,
-        )
-    else:
-        update_event(
-            service=service,
-            new_event=event_details,
-            old_event=existing_event,
-        )
-
-
-def get_first_event_from_event_date(
-    event: Event,
-    service: Resource,
-) -> Optional[Event]:
-    """
-    Look for an event by given dates in calendar.
-    If one is found, return the event.
-    Else, return None.
-
-    @param event: (dic) event description, respecting precise format
-    @return: (google api event object) description of the event if it already
-        exists
-    """
-    if event.is_all_day:
-        return None
-    timeMin = event.start["dateTime"]
-    timeMax = event.end["dateTime"]
-
-    events_from_googleapi = (
-        service.events()
-        .list(
-            calendarId=CALENDAR_ID,
-            timeMin=timeMin,
-            timeMax=timeMax,
-            maxResults=200,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-        .execute()
-    )
-    events = events_from_googleapi.get("items", [])
-    events_filtered = list(filter(lambda event: not "date" in event["start"], events))
-    if events_filtered:
-        event = Event.from_dict(events_filtered[0])
-        if not event.is_all_day:
-            return event
-
-
-def create_event(
-    service: Resource,
-    event_details: Event,
-) -> None:
-    """
-    Create a new event with given details
-    @param event_details: (dict) description of the event
-    @param service: (google api ressource service) the service
-    @return: (None)
-    """
-
-    event = (
-        service.events()
-        .insert(
-            calendarId=CALENDAR_ID,
-            body=event_details.__dict__,
-        )
-        .execute()
-    )
-
-    creation_event_msg = f"Event created: {event.get('htmlLink')}"
-    print(creation_event_msg)
-    logger.warning(creation_event_msg)
+DEFAULT_PATH_MD = PERIOD_PATH + "semaine_{}.md"
 
 
 def extract_number_from_path(week_md_filename: str) -> int:
@@ -296,7 +92,7 @@ def extract_number_from_path(week_md_filename: str) -> int:
     Extract the number from a week .md filename
 
     "semaine_36.md"   ----> 36
-    "semaine_1.md"    ----1 1
+    "semaine_1.md"    ----> 1
 
     @param week_md_filename: (str) the name of the md file
     @return: (int)
@@ -313,18 +109,6 @@ def get_weeks_from_period(period_path: str) -> list[int]:
     """
     week_dirs_list = (f for f in listdir(period_path) if isfile(join(period_path, f)))
     return sorted(list(map(extract_number_from_path, week_dirs_list)))
-
-
-def color_text(text: str, color: str = "BOLD") -> str:
-    """
-    Color a line for shell printing.
-    The string is encapsulated and rest of line will have default format.
-
-    @param text: (str) text to be printed
-    @param color: (str) used color or "BOLD"
-    @returns: (str) formated string closed by an END tag.
-    """
-    return TEXT_COLORS[color] + text + TEXT_COLORS["END"]
 
 
 def display_md_content(path: str) -> None:
@@ -422,7 +206,7 @@ def convert_numbers_to_path(
     # we now have a complete path
     path_list = []
     for week_number in week_list:
-        path = default_path_md.format(period_number, week_number)
+        path = DEFAULT_PATH_MD.format(period_number, week_number)
         print(color_text(path + "\n", "YELLOW"))
         path_list.append(path)
 
@@ -568,7 +352,7 @@ def create_or_update_week_events() -> None:
     logger.warning(STARTING_APPLICATION_MSG)
 
     for path in path_list:
-        if not os.path.exists(path):
+        if not exists(path):
             logger.debug("File not found : {}".format(path))
             raise FileNotFoundError(
                 f"""File not found : {path}
@@ -581,27 +365,5 @@ def create_or_update_week_events() -> None:
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 
-def create_logger() -> logging.Logger:
-    """
-    Creates a rotating file_handler logger.
-
-    @return: (logging.Logger) the rotating file handler logger
-    """
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    file_handler = logging.handlers.RotatingFileHandler(
-        filename=LOGFILE,
-        maxBytes=5 * 1024 * 1024,
-        backupCount=5,
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    return logger
-
-
 if __name__ == "__main__":
-    logger = create_logger()
     create_or_update_week_events()

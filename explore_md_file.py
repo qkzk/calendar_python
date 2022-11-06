@@ -166,7 +166,6 @@ class AllDayEventsParsers:
                 'timeZone': 'Europe/Paris',
             }
         """
-        print("summary", summary)
         has_end_date = len(summary) >= 3
         if has_end_date:
             end_date = parse_date_list(summary[2].strip().strip("-").split(" "))
@@ -290,7 +289,7 @@ def get_offset_at_given_date(time_of_event: datetime.datetime) -> int:
     Get the offset (1 or 2 at a give date)
 
     During summer Europe/Paris is +2 hours offset from UTC
-    During summer Europe/Paris is +1 hours offset from UTC
+    During winter Europe/Paris is +1 hours offset from UTC
 
     @param time_of_event: (datetime)
     @return: (int)
@@ -396,18 +395,11 @@ def parse_first_line(
     * corlorId
     """
 
-    print("summary_strings[0]")
-    print(summary_strings[0])
-
-    if summary_strings[0][0].isdecimal():
-        print("timed event")
-        print(summary_strings)
+    if is_timed_event_summary(summary_strings[0]):
         start, end = TimedEventsParsers.parse_hours(dt, summary_strings[0])
         location = TimedEventsParsers.parse_location(summary_strings)
         summary = TimedEventsParsers.parse_summary(summary_strings)
     else:
-        print("all day event")
-        print(summary_strings)
         start, end = AllDayEventsParsers.parse_days(dt, summary_strings)
         location = AllDayEventsParsers.parse_location(summary_strings)
         summary = AllDayEventsParsers.parse_summary(summary_strings)
@@ -421,6 +413,10 @@ def parse_first_line(
         "summary": summary,
         "colorId": color_id,
     }
+
+
+def is_timed_event_summary(summary: str) -> bool:
+    return summary[0].isdecimal()
 
 
 def parse_description(lines: list[str]) -> str:

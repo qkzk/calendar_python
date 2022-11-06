@@ -3,7 +3,6 @@
 # get the current dir
 CURRPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 SCRIPTATH="/home/quentin/gclem/dev/python/boulot_utils/calendar_python"
-VENVPATH="/home/quentin/ntfs/venv/calendar_python_venv"
 
 # get the message
 if [[ $# > 1 ]]; then
@@ -12,9 +11,6 @@ if [[ $# > 1 ]]; then
 else
   echo "Calendar Python without arguments"
 fi
-
-# new dir without venv
-cd $VENVPATH
 
 # activate virtual environnement
 source venv/bin/activate
@@ -29,9 +25,6 @@ if [[ $# > 1 ]]; then
 else
   python calendar_python.py
 fi
-
-# deactivate virtual environnement
-deactivate
 
 # back to the directory we came from
 cd $CURRPATH

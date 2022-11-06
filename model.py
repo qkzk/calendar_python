@@ -1,6 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
+import dateutil.parser
+
 
 @dataclass
 class Event:
@@ -68,3 +70,6 @@ class Event:
         self.summary = event.summary
         self.description = event.description
         self.colorId = event.colorId
+
+    def __eq__(self, other: Event) -> bool:
+        return self.summary == other.summary
