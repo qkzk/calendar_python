@@ -241,6 +241,8 @@ def get_first_event_from_event_date(
     @return: (google api event object) description of the event if it already
         exists
     """
+    if event.is_all_day:
+        return None
     timeMin = event.start["dateTime"]
     timeMax = event.end["dateTime"]
 
@@ -250,15 +252,18 @@ def get_first_event_from_event_date(
             calendarId=CALENDAR_ID,
             timeMin=timeMin,
             timeMax=timeMax,
-            maxResults=1,
+            maxResults=200,
             singleEvents=True,
             orderBy="startTime",
         )
         .execute()
     )
     events = events_from_googleapi.get("items", [])
-    if events:
-        return Event.from_dict(events[0])
+    events_filtered = list(filter(lambda event: not "date" in event["start"], events))
+    if events_filtered:
+        event = Event.from_dict(events_filtered[0])
+        if not event.is_all_day:
+            return event
 
 
 def create_event(

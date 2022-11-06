@@ -68,6 +68,7 @@ Principe :
 - arguments parsing for batch mode or interactive mode, verbose or not
 - refactoring : typing for every used function
 - rotating file log
+- all day events spanning multiple days
 
 # Sources :
 
