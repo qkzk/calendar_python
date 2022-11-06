@@ -141,49 +141,127 @@ def format_html(description: str) -> str:
     return description_html
 
 
-def parse_hours(
-    dt_key: datetime.datetime, hours: str
-) -> tuple[dict[str, str], dict[str, str]]:
-    """
-    Extract the start and end datetime of a given string
+class AllDayEventsParsers:
+    @staticmethod
+    def parse_hours(dt_key: datetime.datetime) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Extract the start and end datetime of a given string
 
-    @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
-    @param hours: (str) '* 8h55-9h50'
-    @return: (tuple) (start, end)
-        example :
-        'end': datetime.datetime(2019, 9, 2, 10, 55),
-        'start': datetime.datetime(2019, 9, 2, 10, 0),
+        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
+        @param hours: (str) '* 8h55-9h50'
+        @return: (tuple) (start, end)
+            example :
+            'end': datetime.datetime(2019, 9, 2, 10, 55),
+            'start': datetime.datetime(2019, 9, 2, 10, 0),
 
 
-        start = {
-            'dateTime': '2019-08-09T14:00:00+02:00',
-            'timeZone': 'Europe/Paris',
+            start = {
+                'dateTime': '2019-08-09T14:00:00+02:00',
+                'timeZone': 'Europe/Paris',
+                }
+            end = {
+                'dateTime': '2019-08-09T15:00:00+02:00',
+                'timeZone': 'Europe/Paris',
             }
-        end = {
-            'dateTime': '2019-08-09T15:00:00+02:00',
-            'timeZone': 'Europe/Paris',
-        }
-    """
-    hours = hours.strip("*").strip()
-    hours_list = hours.split("-")
+        """
 
-    start_str = hours_list[0]
-    end_str = hours_list[1]
+        start = {"date": format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
+        end = {"date": format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
 
-    start_hour, start_minute = get_hours_minute(start_str)
-    end_hour, end_minute = get_hours_minute(end_str)
+        return start, end
 
-    year = dt_key.year
-    month = dt_key.month
-    day = dt_key.day
+    @staticmethod
+    def parse_location(summary_strings: list[str]) -> str:
+        """
+        Extract the location of the event.
 
-    start_dt = datetime.datetime(year, month, day, start_hour, start_minute)
-    end_dt = datetime.datetime(year, month, day, end_hour, end_minute)
+        @param summary_strings: (list[str])
+        @return: (str)
+        """
+        return summary_strings[0] if len(summary_strings) > 0 else ""
 
-    start = {"dateTime": format_dt_for_event(start_dt), "timeZone": TIMEZONE}
-    end = {"dateTime": format_dt_for_event(end_dt), "timeZone": TIMEZONE}
+    @staticmethod
+    def parse_summary(summary_strings: list[str]) -> str:
+        """
+        Extract the summary for a list of strings.
 
-    return start, end
+        @param summary_strings: (list[str]) list of string for a summary.
+            The first line should be blank
+        @return: (str) joined summary, without the blank line.
+        """
+        if len(summary_strings) <= 1:
+            return "%"
+        return summary_strings[1]
+
+
+class TimedEventsParsers:
+    @staticmethod
+    def parse_hours(
+        dt_key: datetime.datetime, hours: str
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Extract the start and end datetime of a given string
+
+        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
+        @param hours: (str) '* 8h55-9h50'
+        @return: (tuple) (start, end)
+            example :
+            'end': datetime.datetime(2019, 9, 2, 10, 55),
+            'start': datetime.datetime(2019, 9, 2, 10, 0),
+
+
+            start = {
+                'dateTime': '2019-08-09T14:00:00+02:00',
+                'timeZone': 'Europe/Paris',
+                }
+            end = {
+                'dateTime': '2019-08-09T15:00:00+02:00',
+                'timeZone': 'Europe/Paris',
+            }
+        """
+        hours = hours.strip("*").strip()
+        hours_list = hours.split("-")
+
+        start_str = hours_list[0]
+        end_str = hours_list[1]
+
+        start_hour, start_minute = get_hours_minute(start_str)
+        end_hour, end_minute = get_hours_minute(end_str)
+
+        year = dt_key.year
+        month = dt_key.month
+        day = dt_key.day
+
+        start_dt = datetime.datetime(year, month, day, start_hour, start_minute)
+        end_dt = datetime.datetime(year, month, day, end_hour, end_minute)
+
+        start = {"dateTime": format_dt_for_event(start_dt), "timeZone": TIMEZONE}
+        end = {"dateTime": format_dt_for_event(end_dt), "timeZone": TIMEZONE}
+
+        return start, end
+
+    @staticmethod
+    def parse_location(summary_strings: list[str]) -> str:
+        """
+        Extract the location of the event.
+
+        @param summary_strings: (list[str])
+        @return: (str)
+        """
+        return summary_strings[1] if len(summary_strings) > 1 else ""
+
+    @staticmethod
+    def parse_summary(summary_strings: list[str]) -> str:
+        """
+        Extract the summary for a list of strings.
+
+        @param summary_strings: (list[str]) list of string for a summary.
+            The first line should be blank
+        @return: (str) joined summary, without the blank line.
+        """
+        if len(summary_strings) <= 2:
+            return "%"
+        return summary_strings[2]
 
 
 def get_hours_minute(time_str: str) -> tuple[int, int]:
@@ -229,6 +307,11 @@ def format_dt_for_event(time_of_event: datetime.datetime) -> str:
     return datetime.datetime.strftime(time_of_event, time_format)
 
 
+def format_dt_for_all_day_event(day_of_event: datetime.datetime) -> str:
+    all_day_format = "%Y-%m-%d"
+    return datetime.datetime.strftime(day_of_event, all_day_format)
+
+
 def get_days_indexes(lines: list[str]) -> list[int]:
     """
     Returns the line number of line describing a day.
@@ -272,29 +355,6 @@ def parse_day_events(
     return events
 
 
-def parse_location(summary_strings: list[str]) -> str:
-    """
-    Extract the location of the event.
-
-    @param summary_strings: (list[str])
-    @return: (str)
-    """
-    return summary_strings[1] if len(summary_strings) > 1 else ""
-
-
-def parse_summary(summary_strings: list[str]) -> str:
-    """
-    Extract the summary for a list of strings.
-
-    @param summary_strings: (list[str]) list of string for a summary.
-        The first line should be blank
-    @return: (str) joined summary, without the blank line.
-    """
-    if len(summary_strings) <= 2:
-        return "%"
-    return summary_strings[2]
-
-
 def parse_color_id(summary: str) -> str:
     """
     Search for keywords in the description of the event.
@@ -328,9 +388,22 @@ def parse_first_line(
     * corlorId
     """
 
-    start, end = parse_hours(dt, summary_strings[0])
-    location = parse_location(summary_strings)
-    summary = parse_summary(summary_strings)
+    print("summary_strings[0]")
+    print(summary_strings[0])
+
+    if summary_strings[0][0].isdecimal():
+        print("timed event")
+        print(summary_strings)
+        start, end = TimedEventsParsers.parse_hours(dt, summary_strings[0])
+        location = TimedEventsParsers.parse_location(summary_strings)
+        summary = TimedEventsParsers.parse_summary(summary_strings)
+    else:
+        print("all day event")
+        print(summary_strings)
+        start, end = AllDayEventsParsers.parse_hours(dt)
+        location = AllDayEventsParsers.parse_location(summary_strings)
+        summary = AllDayEventsParsers.parse_summary(summary_strings)
+
     color_id = parse_color_id(summary)
 
     return {

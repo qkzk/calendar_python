@@ -241,6 +241,8 @@ def get_first_event_from_event_date(
     @return: (google api event object) description of the event if it already
         exists
     """
+    if event.is_all_day:
+        return None
     timeMin = event.start["dateTime"]
     timeMax = event.end["dateTime"]
 

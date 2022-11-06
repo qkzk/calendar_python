@@ -24,6 +24,7 @@ class Event:
     description: str
     colorId: str
     htmlLink: str
+    is_all_day: bool
 
     @classmethod
     def from_dict(cls, event_dict: dict) -> Event:
@@ -31,6 +32,7 @@ class Event:
         Creates an Event from a dict.
         Raise AssertionError if some values types aren't correct.
         """
+        is_all_day = "dateTime" not in event_dict["start"]
         event = cls(
             id=event_dict.get("id", ""),
             start=event_dict["start"],
@@ -40,6 +42,7 @@ class Event:
             description=event_dict.get("description", ""),
             colorId=event_dict.get("colorId", "11"),
             htmlLink=event_dict.get("htmlLink", ""),
+            is_all_day=is_all_day,
         )
         cls.raise_if_invalid(event)
         return event
