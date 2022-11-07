@@ -10,12 +10,13 @@ description:
 """
 from os.path import exists
 
-from arguments_parser import read_arguments
-from colors import color_text
 from googleapiclient.discovery import Resource
-from google_interaction import build_service, sync_event_from_md
-from logger import logger
-from user_interaction import warn_and_get_path, WRONG_PATH_MSG
+
+from .arguments_parser import read_arguments
+from .colors import color_text
+from .google_interaction import build_service, sync_event_from_md
+from .logger import logger
+from .user_interaction import warn_and_get_path, WRONG_PATH_MSG
 
 STARTING_APPLICATION_MSG = "Calendar Python started !"
 EXPLORING_MSG = """

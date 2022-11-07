@@ -21,9 +21,9 @@ cd $SCRIPTATH
 # exec python script
 if [[ $# > 1 ]]; then
   # without
-  python calendar_python.py "$@"
+  python main.py "$@"
 else
-  python calendar_python.py
+  python main.py
 fi
 
 # back to the directory we came from

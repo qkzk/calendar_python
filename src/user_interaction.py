@@ -6,8 +6,8 @@ import argparse
 import sys
 
 
-from config import CURRENT_YEAR, GIT_COURS_REPO_PATH
-from colors import color_text
+from .config import CURRENT_YEAR, GIT_COURS_REPO_PATH
+from .colors import color_text
 
 # messages
 WELCOME_MSG = "welcome to..."

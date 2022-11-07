@@ -34,8 +34,8 @@ import datetime
 import markdown
 import pytz
 
-from model import Event
-from config import STUDENT_CLASS_COLORS, TIMEZONE, DEFAULT_COLOR
+from .model import Event
+from .config import STUDENT_CLASS_COLORS, TIMEZONE, DEFAULT_COLOR
 
 TRADUCTION_MONTH = {
     "janvier": "January",
