@@ -3,7 +3,7 @@ import logging.handlers
 
 
 # logs etc.
-LOGFILE = "calendar_python.log"
+LOGFILE = "log/calendar_python.log"
 
 
 def create_logger() -> logging.Logger:
