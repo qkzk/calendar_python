@@ -12,9 +12,6 @@ else
   echo "Calendar Python without arguments"
 fi
 
-# activate virtual environnement
-source venv/bin/activate
-
 # go where the script is
 cd $SCRIPTATH
 

@@ -52,14 +52,16 @@ def create_or_update_week_events() -> None:
     @return: None
 
     """
+    print(color_text(STARTING_APPLICATION_MSG, "DARKCYAN"))
+    logger.warning(STARTING_APPLICATION_MSG)
+
     arguments = read_arguments()
     print(arguments)
     # get the path from the user, provided as args or not.
     path_list = warn_and_get_path(arguments)
     # if isn't exited yet, we continue.
 
-    print(color_text(STARTING_APPLICATION_MSG, "DARKCYAN"))
-    logger.warning(STARTING_APPLICATION_MSG)
+    service: Resource = build_service()
 
     for path in path_list:
         if not exists(path):
@@ -70,7 +72,6 @@ def create_or_update_week_events() -> None:
             )
 
         print(EXPLORING_MSG)
-        service: Resource = build_service()
         sync_event_from_md(service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
