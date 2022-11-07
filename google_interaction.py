@@ -52,7 +52,8 @@ def get_credentials() -> Union[Credentials, Any]:
 def build_service() -> Resource:
     """
     Return the google api client service ressource
-    Start by building the credentials if needed
+    with methods for interaction with the service.
+    Start by building the credentials if needed.
 
     @return: (googleapiclient.discovery.Resource)
     """
@@ -126,38 +127,86 @@ def update_or_create_event(
     @returns: (None)
     """
     if not event_details.is_all_day:
-        existing_event = get_matching_existing_event(event_details, service)
-        if existing_event is None:
-            create_event(
-                service=service,
-                event_details=event_details,
-            )
-        else:
-            update_event(
-                service=service,
-                new_event=event_details,
-                old_event=existing_event,
-            )
+        create_or_update_timed_event(service, event_details)
     else:
-        timeMin = (
-            datetime.datetime.strptime(event_details.start["date"], "%Y-%m-%d")
-            - datetime.timedelta(days=1)
-        ).strftime("%Y-%m-%dT00:00:00Z")
-        timeMax = (
-            datetime.datetime.strptime(event_details.end["date"], "%Y-%m-%d")
-        ).strftime("%Y-%m-%dT00:00:00Z")
-        existing_events = list(get_day_events_matching_date(timeMin, timeMax, service))
-        if event_details in existing_events:
-            update_event(
-                service=service,
-                new_event=event_details,
-                old_event=existing_events[existing_events.index(event_details)],
-            )
-        else:
-            create_event(service=service, event_details=event_details)
+        create_or_update_day_event(service, event_details)
+
+
+def create_or_update_timed_event(
+    service: Resource,
+    event_details: Event,
+):
+    """
+    Sync a single TIMED event read from a .md file.
+    seek if the event already exists,
+    if there's already an event, it's updated.
+    Else, a new one is created
+
+    @param service: (Resource) the google api ressource
+    @param event_details: (Event) the description of an event
+    @returns: (None)
+    """
+    existing_event = find_timed_event_matching_time(event_details, service)
+    if existing_event is None:
+        create_event(
+            service=service,
+            event_details=event_details,
+        )
+    else:
+        update_event(
+            service=service,
+            new_event=event_details,
+            old_event=existing_event,
+        )
+
+
+def create_or_update_day_event(
+    service: Resource,
+    event_details: Event,
+):
+    """
+    Sync a single DAY event read from a .md file.
+    seek if the event already exists,
+    if there's already an event, it's updated.
+    Else, a new one is created
+
+    @param service: (Resource) the google api ressource
+    @param event_details: (Event) the description of an event
+    @returns: (None)
+    """
+    timeMin = one_day_earlier(event_details.start["date"])
+    timeMax = event_details.end["date"] + "T00:00:00Z"
+    existing_events = list(retrieve_day_events_matching_date(timeMin, timeMax, service))
+    if event_details in existing_events:
+        update_event(
+            service=service,
+            new_event=event_details,
+            old_event=existing_events[existing_events.index(event_details)],
+        )
+    else:
+        create_event(service=service, event_details=event_details)
+
+
+def one_day_earlier(date: str) -> str:
+    """
+    Shift the date back one day and format it for the API.
+
+    @param date: (str) formated like "%Y-%m-%d"
+    @returns: (str) formated like "%Y-%m-%dT00:00:00Z"
+    """
+    return (
+        datetime.datetime.strptime(date, "%Y-%m-%d") - datetime.timedelta(days=1)
+    ).strftime("%Y-%m-%dT00:00:00Z")
 
 
 def retrieve_events(timeMin: str, timeMax: str, service: Resource) -> map[Event]:
+    """
+    Returns a generator of Events with time between timeMin and timeMax.
+    @param timeMin: (str)
+    @param timeMax: (str)
+    @param service: (Resource)
+    @returns: (map[Event]) generator of Event created on the fly.
+    """
     return map(
         Event.from_dict,
         service.events()
@@ -174,7 +223,7 @@ def retrieve_events(timeMin: str, timeMax: str, service: Resource) -> map[Event]
     )
 
 
-def get_matching_existing_event(
+def find_timed_event_matching_time(
     event: Event,
     service: Resource,
 ) -> Optional[Event]:
@@ -183,9 +232,8 @@ def get_matching_existing_event(
     If one is found, return the event.
     Else, return None.
 
-    @param event: (dic) event description, respecting precise format
-    @return: (google api event object) description of the event if it already
-        exists
+    @param event: (Event) event instance
+    @return: (Optional[Event]) Already existing event with overlaping time.
     """
     if event.is_all_day:
         return None
@@ -193,8 +241,7 @@ def get_matching_existing_event(
     timeMax = event.end["dateTime"]
 
     events_filtered = list(
-        filter(
-            lambda event: not "date" in event.start,
+        filter_only_timed_events(
             retrieve_events(timeMin, timeMax, service),
         )
     )
@@ -202,7 +249,27 @@ def get_matching_existing_event(
         return events_filtered[0]
 
 
-def get_day_events_matching_date(
+def filter_only_all_day_events(events: map[Event]) -> filter[Event]:
+    """
+    Filter a map of Event to only keep all day events.
+
+    @param events: (map[Event])
+    @returns: (filter[Event])
+    """
+    return filter(lambda event: "date" in event.start, events)
+
+
+def filter_only_timed_events(events: map[Event]) -> filter[Event]:
+    """
+    Filter a map of Event to only keep timed events.
+
+    @param events: (map[Event])
+    @returns: (filter[Event])
+    """
+    return filter(lambda event: not "date" in event.start, events)
+
+
+def retrieve_day_events_matching_date(
     timeMin: str,
     timeMax: str,
     service: Resource,
@@ -214,8 +281,7 @@ def get_day_events_matching_date(
     @param service: (Resource) the google api ressource
     @returns: (filter[Event]) a collection of filtered day events where the date matches.
     """
-    return filter(
-        lambda event: "date" in event.start,
+    return filter_only_all_day_events(
         retrieve_events(timeMin, timeMax, service),
     )
 
@@ -230,7 +296,6 @@ def create_event(
     @param service: (google api ressource service) the service
     @return: (None)
     """
-
     event = (
         service.events()
         .insert(

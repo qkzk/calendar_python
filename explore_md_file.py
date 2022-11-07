@@ -35,7 +35,7 @@ import markdown
 import pytz
 
 from model import Event
-
+from config import STUDENT_CLASS_COLORS, TIMEZONE, DEFAULT_COLOR
 
 TRADUCTION_MONTH = {
     "janvier": "January",
@@ -62,23 +62,190 @@ MONTHES_END_YEAR = [
     "July",
 ]
 
-STUDENT_CLASS_COLORS = {
-    "2": ["ISN", "tale nsi"],
-    "1": ["1ere NSI"],
-    "9": ["ap", "orientation", "AP"],
-    "8": ["2nd", "train"],
-    "6": ["tmg2"],
-    "11": ["l2s3", "l1s2", "l2s4", "croqmaths"],
-    "7": ["imt", "CP2", "CP1"],
-    "10": ["cdr", "CDR"],
-    "3": ["réunion", "reunion", "conseil", "PP", "default"],
-}
-
-TIMEZONE = "Europe/Paris"
-
-DEFAULT_COLOR = "11"
-
 MD_LI_TOKENS = ("-", "*", "+")
+
+
+class AllDayEventsParsers:
+    @classmethod
+    def parse_time(
+        cls, dt_key: datetime.datetime, summary: list[str]
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Extract the start and end datetime of a given string
+
+        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
+        @param summary: (str) '- Lundi 9 Septembre'
+        @return: (tuple) (start, end)
+
+            start = {
+                'date': '2019-08-09',
+                'timeZone': 'Europe/Paris',
+                }
+            end = {
+                'date': '2019-08-11',
+                'timeZone': 'Europe/Paris',
+            }
+        """
+        has_end_date = len(summary) >= 3
+        if has_end_date:
+            end_date = parse_date_list(summary[2].strip().strip("-").split(" "))
+        else:
+            end_date = dt_key
+
+        start = {"date": cls.format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
+        end = {"date": cls.format_dt_for_all_day_event(end_date), "timeZone": TIMEZONE}
+
+        return start, end
+
+    @staticmethod
+    def parse_location(summary_strings: list[str]) -> str:
+        """
+        Extract the location of the event.
+
+        @param summary_strings: (list[str])
+        @return: (str)
+        """
+        return summary_strings[0] if len(summary_strings) > 0 else ""
+
+    @staticmethod
+    def parse_summary(summary_strings: list[str]) -> str:
+        """
+        Extract the summary for a list of strings.
+
+        @param summary_strings: (list[str]) list of string for a summary.
+            The first line should be blank
+        @return: (str) joined summary, without the blank line.
+        """
+        if len(summary_strings) <= 1:
+            return "%"
+        return summary_strings[1]
+
+    @staticmethod
+    def format_dt_for_all_day_event(day_of_event: datetime.datetime) -> str:
+        all_day_format = "%Y-%m-%d"
+        return datetime.datetime.strftime(day_of_event, all_day_format)
+
+
+class TimedEventsParsers:
+    @classmethod
+    def parse_time(
+        cls, dt_key: datetime.datetime, summary: list[str]
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        """
+        Extract the start and end datetime of a given string
+
+        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
+        @param hours: (str) '* 8h55-9h50'
+        @return: (tuple) (start, end)
+            example :
+            'end': datetime.datetime(2019, 9, 2, 10, 55),
+            'start': datetime.datetime(2019, 9, 2, 10, 0),
+
+
+            start = {
+                'dateTime': '2019-08-09T14:00:00+02:00',
+                'timeZone': 'Europe/Paris',
+                }
+            end = {
+                'dateTime': '2019-08-09T15:00:00+02:00',
+                'timeZone': 'Europe/Paris',
+            }
+        """
+        hours_list = summary[0].strip("*").strip().split("-")
+
+        year = dt_key.year
+        month = dt_key.month
+        day = dt_key.day
+
+        start = cls.create_dict_for_dt(hours_list[0], year, month, day)
+        end = cls.create_dict_for_dt(hours_list[1], year, month, day)
+
+        return start, end
+
+    @classmethod
+    def create_dict_for_dt(
+        cls, dt_str: str, year: int, month: int, day: int
+    ) -> dict[str, str]:
+        """
+        Creates a dict for a given time.
+        {
+            'dateTime': '2019-08-09T14:00:00+02:00',
+            'timeZone': 'Europe/Paris',
+        }
+
+        @param dt_str: (str) like 8h55
+        @parm year, month, day: (int) describe a date
+        @return: (dict[str, str]) a pair of key:value like described above.
+        """
+        hour, minute = cls.get_hours_minute(dt_str)
+        dt = datetime.datetime(year, month, day, hour, minute)
+        return {"dateTime": cls.format_dt_for_event(dt), "timeZone": TIMEZONE}
+
+    @staticmethod
+    def parse_location(summary_strings: list[str]) -> str:
+        """
+        Extract the location of the event.
+
+        @param summary_strings: (list[str])
+        @return: (str)
+        """
+        return summary_strings[1] if len(summary_strings) > 1 else ""
+
+    @staticmethod
+    def parse_summary(summary_strings: list[str]) -> str:
+        """
+        Extract the summary for a list of strings.
+
+        @param summary_strings: (list[str]) list of string for a summary.
+            The first line should be blank
+        @return: (str) joined summary, without the blank line.
+        """
+        if len(summary_strings) <= 2:
+            return "%"
+        return summary_strings[2]
+
+    @staticmethod
+    def get_hours_minute(time_str: str) -> tuple[int, int]:
+        """
+        Extract an hour a minute from a string
+        we could use datetime.strptime but it's dirtier and quicker (to code)
+        @param time_str: (str) french time format : 8h35
+        @return: (tuple of int) (hour, minute) : (8, 35)
+        """
+        time_list = time_str.split("h")
+        time_hour = int(time_list[0])
+        time_minute = 0 if time_list[1] == "" else int(time_list[1])
+        return time_hour, time_minute
+
+    @staticmethod
+    def get_offset_at_given_date(time_of_event: datetime.datetime) -> int:
+        """
+        Get the offset (1 or 2 at a give date)
+
+        During summer Europe/Paris is +2 hours offset from UTC
+        During winter Europe/Paris is +1 hours offset from UTC
+
+        @param time_of_event: (datetime)
+        @return: (int)
+        """
+        cet = pytz.timezone("CET")
+        offset_delta = cet.utcoffset(time_of_event)
+        if offset_delta is not None:
+            offset_hours = int(offset_delta.total_seconds() / 3600)
+            return offset_hours
+        return 0
+
+    @classmethod
+    def format_dt_for_event(cls, time_of_event: datetime.datetime) -> str:
+        """
+        '2019-08-09T15:00:00+02:00'
+
+        The date is correctly offseted (+1 or +2 according to offset)
+        """
+
+        offset = cls.get_offset_at_given_date(time_of_event)
+        time_format = f"%Y-%m-%dT%H:%M:00+0{offset}:00"
+        return datetime.datetime.strftime(time_of_event, time_format)
 
 
 def get_lines_from(path: str) -> list[str]:
@@ -143,180 +310,6 @@ def format_html(description: str) -> str:
     """
     description_html = markdown.markdown(description)
     return description_html
-
-
-class AllDayEventsParsers:
-    @staticmethod
-    def parse_days(
-        dt_key: datetime.datetime, summary: list[str]
-    ) -> tuple[dict[str, str], dict[str, str]]:
-        """
-        Extract the start and end datetime of a given string
-
-        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
-        @param summary: (str) '- Lundi 9 Septembre'
-        @return: (tuple) (start, end)
-
-            start = {
-                'date': '2019-08-09',
-                'timeZone': 'Europe/Paris',
-                }
-            end = {
-                'date': '2019-08-11',
-                'timeZone': 'Europe/Paris',
-            }
-        """
-        has_end_date = len(summary) >= 3
-        if has_end_date:
-            end_date = parse_date_list(summary[2].strip().strip("-").split(" "))
-        else:
-            end_date = dt_key
-
-        start = {"date": format_dt_for_all_day_event(dt_key), "timeZone": TIMEZONE}
-        end = {"date": format_dt_for_all_day_event(end_date), "timeZone": TIMEZONE}
-
-        return start, end
-
-    @staticmethod
-    def parse_location(summary_strings: list[str]) -> str:
-        """
-        Extract the location of the event.
-
-        @param summary_strings: (list[str])
-        @return: (str)
-        """
-        return summary_strings[0] if len(summary_strings) > 0 else ""
-
-    @staticmethod
-    def parse_summary(summary_strings: list[str]) -> str:
-        """
-        Extract the summary for a list of strings.
-
-        @param summary_strings: (list[str]) list of string for a summary.
-            The first line should be blank
-        @return: (str) joined summary, without the blank line.
-        """
-        if len(summary_strings) <= 1:
-            return "%"
-        return summary_strings[1]
-
-
-class TimedEventsParsers:
-    @staticmethod
-    def parse_hours(
-        dt_key: datetime.datetime, hours: str
-    ) -> tuple[dict[str, str], dict[str, str]]:
-        """
-        Extract the start and end datetime of a given string
-
-        @param dt_key: datetime.datetime(2019, 9, 6, 0, 0)
-        @param hours: (str) '* 8h55-9h50'
-        @return: (tuple) (start, end)
-            example :
-            'end': datetime.datetime(2019, 9, 2, 10, 55),
-            'start': datetime.datetime(2019, 9, 2, 10, 0),
-
-
-            start = {
-                'dateTime': '2019-08-09T14:00:00+02:00',
-                'timeZone': 'Europe/Paris',
-                }
-            end = {
-                'dateTime': '2019-08-09T15:00:00+02:00',
-                'timeZone': 'Europe/Paris',
-            }
-        """
-        hours = hours.strip("*").strip()
-        hours_list = hours.split("-")
-
-        start_str = hours_list[0]
-        end_str = hours_list[1]
-
-        start_hour, start_minute = get_hours_minute(start_str)
-        end_hour, end_minute = get_hours_minute(end_str)
-
-        year = dt_key.year
-        month = dt_key.month
-        day = dt_key.day
-
-        start_dt = datetime.datetime(year, month, day, start_hour, start_minute)
-        end_dt = datetime.datetime(year, month, day, end_hour, end_minute)
-
-        start = {"dateTime": format_dt_for_event(start_dt), "timeZone": TIMEZONE}
-        end = {"dateTime": format_dt_for_event(end_dt), "timeZone": TIMEZONE}
-
-        return start, end
-
-    @staticmethod
-    def parse_location(summary_strings: list[str]) -> str:
-        """
-        Extract the location of the event.
-
-        @param summary_strings: (list[str])
-        @return: (str)
-        """
-        return summary_strings[1] if len(summary_strings) > 1 else ""
-
-    @staticmethod
-    def parse_summary(summary_strings: list[str]) -> str:
-        """
-        Extract the summary for a list of strings.
-
-        @param summary_strings: (list[str]) list of string for a summary.
-            The first line should be blank
-        @return: (str) joined summary, without the blank line.
-        """
-        if len(summary_strings) <= 2:
-            return "%"
-        return summary_strings[2]
-
-
-def get_hours_minute(time_str: str) -> tuple[int, int]:
-    """
-    Extract an hour a minute from a string
-    we could use datetime.strptime but it's dirtier and quicker (to code)
-    @param time_str: (str) french time format : 8h35
-    @return: (tuple of int) (hour, minute) : (8, 35)
-    """
-    time_list = time_str.split("h")
-    time_hour = int(time_list[0])
-    time_minute = 0 if time_list[1] == "" else int(time_list[1])
-    return time_hour, time_minute
-
-
-def get_offset_at_given_date(time_of_event: datetime.datetime) -> int:
-    """
-    Get the offset (1 or 2 at a give date)
-
-    During summer Europe/Paris is +2 hours offset from UTC
-    During winter Europe/Paris is +1 hours offset from UTC
-
-    @param time_of_event: (datetime)
-    @return: (int)
-    """
-    cet = pytz.timezone("CET")
-    offset_delta = cet.utcoffset(time_of_event)
-    if offset_delta is not None:
-        offset_hours = int(offset_delta.total_seconds() / 3600)
-        return offset_hours
-    return 0
-
-
-def format_dt_for_event(time_of_event: datetime.datetime) -> str:
-    """
-    '2019-08-09T15:00:00+02:00'
-
-    The date is correctly offseted (+1 or +2 according to offset)
-    """
-
-    offset = get_offset_at_given_date(time_of_event)
-    time_format = f"%Y-%m-%dT%H:%M:00+0{offset}:00"
-    return datetime.datetime.strftime(time_of_event, time_format)
-
-
-def format_dt_for_all_day_event(day_of_event: datetime.datetime) -> str:
-    all_day_format = "%Y-%m-%d"
-    return datetime.datetime.strftime(day_of_event, all_day_format)
 
 
 def get_days_indexes(lines: list[str]) -> list[int]:
@@ -396,13 +389,13 @@ def parse_first_line(
     """
 
     if is_timed_event_summary(summary_strings[0]):
-        start, end = TimedEventsParsers.parse_hours(dt, summary_strings[0])
-        location = TimedEventsParsers.parse_location(summary_strings)
-        summary = TimedEventsParsers.parse_summary(summary_strings)
+        parser = TimedEventsParsers
     else:
-        start, end = AllDayEventsParsers.parse_days(dt, summary_strings)
-        location = AllDayEventsParsers.parse_location(summary_strings)
-        summary = AllDayEventsParsers.parse_summary(summary_strings)
+        parser = AllDayEventsParsers
+
+    start, end = parser.parse_time(dt, summary_strings)
+    location = parser.parse_location(summary_strings)
+    summary = parser.parse_summary(summary_strings)
 
     color_id = parse_color_id(summary)
 
@@ -416,6 +409,13 @@ def parse_first_line(
 
 
 def is_timed_event_summary(summary: str) -> bool:
+    """
+    True if the summary describes a timed event.
+    A timed event starts with a time description, its first char is a decimal digit.
+
+    @param summary: (list[str]) the first one describes the summary itself
+    @return: (bool)
+    """
     return summary[0].isdecimal()
 
 

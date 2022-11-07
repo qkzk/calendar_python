@@ -315,6 +315,7 @@ def user_provides_invalid_input(
 
     @param path_list: (list[str]) a list of valid week numbers
     @param input_warning: (str) "y" or another inputed string.
+    @returns: (bool) True if the path couldn't be figured or the user typed no.
     """
     return not path_list or input_warning != "y"
 

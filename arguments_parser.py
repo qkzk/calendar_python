@@ -1,11 +1,21 @@
 """
-title: reads and parse command line arguments
+title: parser of command line arguments
 """
 
 import argparse
 
 
-def read_arguments():
+def read_arguments() -> argparse.Namespace:
+    """
+    Returns a parser of arguments.
+
+    -i, --interactive: interactive mode. The user types the period and week numbers.
+        The user can also review the content.
+    -v, -- view_content: display the markdown content
+    -y, --yes: Don't ask confirmation
+    [period_number]: (int) between 1 and 5
+    [week_numbers]: ([int]) corresponding week numbers. Must belong to that period
+    """
     parser = argparse.ArgumentParser(
         description="""Synchronise your markdown calendars with Google Calendar."""
     )
