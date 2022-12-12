@@ -64,38 +64,6 @@ def build_service() -> Resource:
     return service
 
 
-def update_event(
-    service: Resource,
-    new_event: Event,
-    old_event: Event,
-) -> None:
-    """
-    Update the details of an event.
-    The event can be passed or only his id
-    If no service is given, will create the service
-
-
-    @param event_details: (dict) les attributs de l'événements à mettre à jour
-    @param new_event: (Event) the new event to push
-    @param old_event: (Event) the old event to update
-    @returns: (None)
-    """
-    old_event.update(new_event)
-
-    updated_data = (
-        service.events()
-        .update(
-            calendarId=CALENDAR_ID,
-            eventId=old_event.id,
-            body=old_event.__dict__,
-        )
-        .execute()
-    )
-    update_event_msg = "updated the event: {}".format(updated_data["htmlLink"])
-    print(color_text(update_event_msg, "CYAN"))
-    logger.warning(update_event_msg)
-
-
 def sync_event_from_md(
     service: Resource,
     path: str,
@@ -307,6 +275,38 @@ def create_event(
         .execute()
     )
 
-    creation_event_msg = f"Event created: {event.get('htmlLink')}"
+    creation_event_msg = f"Event created: {event_details.start} {event.get('htmlLink')}"
     print(color_text(creation_event_msg, "YELLOW"))
     logger.warning(creation_event_msg)
+
+
+def update_event(
+    service: Resource,
+    new_event: Event,
+    old_event: Event,
+) -> None:
+    """
+    Update the details of an event.
+    The event can be passed or only his id
+    If no service is given, will create the service
+
+
+    @param event_details: (dict) les attributs de l'événements à mettre à jour
+    @param new_event: (Event) the new event to push
+    @param old_event: (Event) the old event to update
+    @returns: (None)
+    """
+    old_event.update(new_event)
+
+    updated_data = (
+        service.events()
+        .update(
+            calendarId=CALENDAR_ID,
+            eventId=old_event.id,
+            body=old_event.__dict__,
+        )
+        .execute()
+    )
+    update_event_msg = f"Event updated: {new_event.start} {updated_data['htmlLink']}"
+    print(color_text(update_event_msg, "CYAN"))
+    logger.warning(update_event_msg)
