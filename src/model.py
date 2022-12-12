@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-import dateutil.parser
+from datetime import datetime
 
 
 @dataclass
@@ -70,6 +70,21 @@ class Event:
         self.summary = event.summary
         self.description = event.description
         self.colorId = event.colorId
+
+    def readable_start_date(self) -> str:
+        """
+        Transform a dict describing the start time event into a readable string.
+        * all day event have a "date" key wich is already readable. We right pad it
+            for alignement.
+        * timed event have a "dateTime" which is isoformated, we format it like :
+            "2022-12-31 23:59"
+        """
+        if self.is_all_day:
+            return self.start["date"] + " " * 8
+        else:
+            return datetime.fromisoformat(self.start["dateTime"]).strftime(
+                "%Y-%m-%d - %H:%M"
+            )
 
     def __eq__(self, other: Event) -> bool:
         return self.summary == other.summary

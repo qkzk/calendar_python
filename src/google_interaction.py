@@ -275,7 +275,9 @@ def create_event(
         .execute()
     )
 
-    creation_event_msg = f"Event created: {event_details.start} {event.get('htmlLink')}"
+    creation_event_msg = (
+        f"Event created: {event_details.readable_start_date()} {event.get('htmlLink')}"
+    )
     print(color_text(creation_event_msg, "YELLOW"))
     logger.warning(creation_event_msg)
 
@@ -307,6 +309,8 @@ def update_event(
         )
         .execute()
     )
-    update_event_msg = f"Event updated: {new_event.start} {updated_data['htmlLink']}"
+    update_event_msg = (
+        f"Event updated: {new_event.readable_start_date()} {updated_data['htmlLink']}"
+    )
     print(color_text(update_event_msg, "CYAN"))
     logger.warning(update_event_msg)
