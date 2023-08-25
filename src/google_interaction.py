@@ -86,7 +86,7 @@ def sync_event_from_md(
     @returns: (None)
     @SE: insert or update events for a given week
     """
-    event_list = parse_events(path)
+    event_list = parse_events(agenda, path)
     pprint(event_list)
     for event_details in event_list:
         update_or_create_event(agenda, service, event_details)

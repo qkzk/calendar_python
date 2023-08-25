@@ -35,7 +35,7 @@ import markdown
 import pytz
 
 from .model import Event
-from .config import STUDENT_CLASS_COLORS, TIMEZONE, DEFAULT_COLOR
+from .config import STUDENT_CLASS_COLORS, TIMEZONE, Agenda
 
 TRADUCTION_MONTH = {
     "janvier": "January",
@@ -341,6 +341,7 @@ def split_day_lines(lines: list[str]) -> dict[datetime.datetime, list[str]]:
 
 
 def parse_day_events(
+    agenda: Agenda,
     dict_day_lines: dict[datetime.datetime, list[str]],
 ) -> list[Event]:
     """
@@ -351,11 +352,11 @@ def parse_day_events(
     """
     events = []
     for dt, lines in dict_day_lines.items():
-        events.extend(read_day_events(dt, split_day_events(lines)))
+        events.extend(read_day_events(agenda, dt, split_day_events(lines)))
     return events
 
 
-def parse_color_id(summary: str) -> str:
+def parse_color_id(agenda: Agenda, summary: str) -> str:
     """
     Search for keywords in the description of the event.
     Return the color number (string) if something is found
@@ -368,10 +369,11 @@ def parse_color_id(summary: str) -> str:
         for tag in tags:
             if tag.lower() in summary.lower():
                 return nb
-    return DEFAULT_COLOR
+    return agenda.default_color
 
 
 def parse_first_line(
+    agenda: Agenda,
     dt: datetime.datetime,
     summary_strings: list[str],
 ) -> dict[str, Union[str, dict[str, str]]]:
@@ -397,7 +399,7 @@ def parse_first_line(
     location = parser.parse_location(summary_strings)
     summary = parser.parse_summary(summary_strings)
 
-    color_id = parse_color_id(summary)
+    color_id = parse_color_id(agenda, summary)
 
     return {
         "start": start,
@@ -429,6 +431,7 @@ def parse_description(lines: list[str]) -> str:
 
 
 def parse_event(
+    agenda: Agenda,
     dt: datetime.datetime,
     lines: list[str],
 ) -> Event:
@@ -438,7 +441,7 @@ def parse_event(
     @param lines: (list[str]) lines of the event
     @return: (Event) Complete Event, ready to be pushed.
     """
-    event_dict = parse_first_line(dt, lines[0].strip().split(" - "))
+    event_dict = parse_first_line(agenda, dt, lines[0].strip().split(" - "))
     description = parse_description(lines)
     if description is not None:
         event_dict["description"] = description
@@ -447,6 +450,7 @@ def parse_event(
 
 
 def read_day_events(
+    agenda: Agenda,
     dt: datetime.datetime,
     splitted_events: list[list[str]],
 ) -> list[Event]:
@@ -456,7 +460,7 @@ def read_day_events(
     @param split_events: (list[list[str]) event for that day, per day event.
     @return: (list[Event]) the events of that day
     """
-    return [parse_event(dt, lines) for lines in splitted_events if lines]
+    return [parse_event(agenda, dt, lines) for lines in splitted_events if lines]
 
 
 def split_day_events(lines: list[str]) -> list[list[str]]:
@@ -478,6 +482,7 @@ def split_day_events(lines: list[str]) -> list[list[str]]:
 
 
 def parse_events(
+    agenda: Agenda,
     path: str,
 ) -> list[Event]:
     """
@@ -487,8 +492,8 @@ def parse_events(
     @param path: (str) path of the .md file
     @return : (list[Event]) all the events of a given week
     """
-    return parse_day_events(split_day_lines(get_lines_from(path)))
+    return parse_day_events(agenda, split_day_lines(get_lines_from(path)))
 
 
 if __name__ == "__main__":
-    print(parse_color_id("2ND9"))
+    pass
