@@ -59,6 +59,18 @@ DEFAULT_COLOR = "11"
 
 @dataclass
 class Agenda:
+    """
+    Agenda contains every information about Google Calendar agendas.
+    - shortname : shortname for argument parser : ie. `calpy -a s` where `s` is a shortname
+    - longname : name used everywhere to identify the agenda
+    - calendar_id : google API identifier for this agenda
+    - git_repo_path : path to the yaml files
+    - default_color: integer between 1 and 11 (see above documentation)
+    - default : (bool) at least one agenda should have it set to true
+
+    Agenda objects should be created using the yaml loader and read from a config file.
+    """
+
     shortname: str
     longname: str
     calendar_id: str
@@ -68,6 +80,7 @@ class Agenda:
 
     @classmethod
     def from_yaml(cls, yaml_content: dict) -> Agenda:
+        """Read a dictionnary created from a yaml content and return an Agenda."""
         return cls(
             shortname=yaml_content["shortname"],
             longname=yaml_content["longname"],
@@ -79,6 +92,10 @@ class Agenda:
 
 
 def read_config_file(config_path: str) -> list[Agenda]:
+    """
+    Read a config file and returns its agenda.
+    Will fail if the agenda aren't described properly.
+    """
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_content = yaml.safe_load(config_file)
         print(config_content)
