@@ -23,6 +23,8 @@ COLORS = {
 from __future__ import annotations
 from dataclasses import dataclass
 
+import yaml
+
 # What is the calendar id ?
 CALENDAR_ID = "ja53enipie6bc0b7sdldvlf528@group.calendar.google.com"  # qu3nt1n
 # CALENDAR_ID = 'u79g8ba5vo6d8qnt20vebrqp8k@group.calendar.google.com' # leclemenceau
@@ -64,27 +66,24 @@ class Agenda:
     default_color: str
     default: bool = False
 
+    @classmethod
+    def from_yaml(cls, yaml_content: dict) -> Agenda:
+        return cls(
+            shortname=yaml_content["shortname"],
+            longname=yaml_content["longname"],
+            calendar_id=yaml_content["calendar_id"],
+            git_repo_path=yaml_content["git_repo_path"],
+            default_color=yaml_content["default_color"],
+            default=yaml_content["default"],
+        )
 
-quentin_agenda = Agenda(
-    shortname="q",
-    longname="quentin",
-    calendar_id="ja53enipie6bc0b7sdldvlf528@group.calendar.google.com",
-    git_repo_path="/home/quentin/gdrive/cours/git_cours/cours/",
-    default_color="11",
-    default=True,
-)
 
-sadia_agenda = Agenda(
-    shortname="s",
-    longname="sadia",
-    calendar_id="aze",
-    git_repo_path="aze",
-    default_color="3",
-)
+def read_config_file(config_path: str) -> list[Agenda]:
+    with open(config_path, "r", encoding="utf-8") as config_file:
+        config_content = yaml.safe_load(config_file)
+        print(config_content)
+        return [Agenda.from_yaml(value) for value in config_content["agendas"].values()]
 
-AGENDAS = (
-    quentin_agenda,
-    sadia_agenda,
-)
 
-DEFAULT_AGENDA = [agenda for agenda in AGENDAS if agenda.default][0]
+agendas = read_config_file("./config.yml")
+DEFAULT_AGENDA = [agenda for agenda in agendas if agenda.default][0]

@@ -12,7 +12,7 @@ from os.path import exists
 
 from googleapiclient.discovery import Resource
 
-from src.config import AGENDAS, DEFAULT_AGENDA, Agenda
+from src.config import agendas, DEFAULT_AGENDA, Agenda
 
 from .arguments_parser import read_arguments
 from .colors import color_text
@@ -32,7 +32,7 @@ DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 
 
 def pick_agenda(agenda_name_from_args: str) -> Agenda:
-    for agenda in AGENDAS:
+    for agenda in agendas:
         if agenda.longname == agenda_name_from_args:
             return agenda
     return DEFAULT_AGENDA
