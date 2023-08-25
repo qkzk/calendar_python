@@ -18,6 +18,15 @@ from .colors import color_text
 from .logger import logger
 from .model import Event
 
+# Fix AttributeError: module 'collections' has no attribute 'MutableMapping'
+# Python 3.11 is incompatible with google APIs atm (2023/08/25)
+# https://stackoverflow.com/questions/70943244/attributeerror-module-collections-has-no-attribute-mutablemapping
+import sys
+
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    import collections
+
+    setattr(collections, "MutableMapping", collections.abc.MutableMapping)
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
