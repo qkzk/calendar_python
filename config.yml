@@ -1,16 +1,16 @@
 agendas:
   quentin:
-    shortname: "q"
-    longname: "quentin"
     calendar_id: "ja53enipie6bc0b7sdldvlf528@group.calendar.google.com"
-    git_repo_path: "/home/quentin/gdrive/cours/git_cours/cours/"
-    default_color: "11"
     default: true
+    default_color: "11"
+    git_repo_path: "/home/quentin/gdrive/cours/git_cours/cours/"
+    longname: "quentin"
+    shortname: "q"
 
   sadia:
-    shortname: "s"
-    longname: "sadia"
     calendar_id: "aze"
-    git_repo_path: "aze"
-    default_color: "3"
     default: false
+    default_color: "3"
+    git_repo_path: "/home/quentin/git_repos/sadia/2023_PS/"
+    longname: "sadia"
+    shortname: "s"

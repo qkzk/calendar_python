@@ -30,8 +30,8 @@ CALENDAR_ID = "ja53enipie6bc0b7sdldvlf528@group.calendar.google.com"  # qu3nt1n
 # CALENDAR_ID = 'u79g8ba5vo6d8qnt20vebrqp8k@group.calendar.google.com' # leclemenceau
 
 # What is the current year ?
-# school year, for 2022-2023 use 2022
-CURRENT_YEAR = 2022
+# school year, for 2023-2024 use 2023
+CURRENT_YEAR = 2023
 
 # Where are the .md files stored ?
 GIT_COURS_REPO_PATH = "/home/quentin/gdrive/cours/git_cours/cours/"
@@ -103,4 +103,4 @@ def read_config_file(config_path: str) -> list[Agenda]:
 
 
 agendas = read_config_file("./config.yml")
-DEFAULT_AGENDA = [agenda for agenda in agendas if agenda.default][0]
+default_agenda = [agenda for agenda in agendas if agenda.default][0]
