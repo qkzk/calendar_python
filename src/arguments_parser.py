@@ -54,6 +54,13 @@ def read_arguments() -> argparse.Namespace:
         action="store_true",
     )
 
+    parser.add_argument(
+        "-a",
+        "--agenda",
+        default="quentin",
+        type=str,
+    )
+
     arguments = parser.parse_args()
 
     return arguments

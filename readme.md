@@ -75,3 +75,12 @@ Principe :
 
 - the usual suspects : stackoverflow, python docs, sam & max etc.
 - [google calendar API python ref](https://developers.google.com/calendar/quickstart/python?authuser=2)
+
+# TODO
+
+## Multiples sources
+
+1. allow another argument specifying the source with a default one for me
+2. allow multiple tokens and store them properly
+3. make it simple for simpler agendas
+4. ???

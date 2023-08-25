@@ -12,6 +12,8 @@ from os.path import exists
 
 from googleapiclient.discovery import Resource
 
+from src.config import AGENDAS, DEFAULT_AGENDA, Agenda
+
 from .arguments_parser import read_arguments
 from .colors import color_text
 from .google_interaction import build_service, sync_event_from_md
@@ -27,6 +29,13 @@ CONFIRMATION_MSG = """
 DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 
 """
+
+
+def pick_agenda(agenda_name_from_args: str) -> Agenda:
+    for agenda in AGENDAS:
+        if agenda.longname == agenda_name_from_args:
+            return agenda
+    return DEFAULT_AGENDA
 
 
 def create_or_update_week_events() -> None:
@@ -57,11 +66,12 @@ def create_or_update_week_events() -> None:
 
     arguments = read_arguments()
     print(arguments)
+    agenda = pick_agenda(arguments.agenda)
     # get the path from the user, provided as args or not.
     path_list = warn_and_get_path(arguments)
     # if isn't exited yet, we continue.
 
-    service: Resource = build_service()
+    service: Resource = build_service(agenda)
 
     for path in path_list:
         if not exists(path):
