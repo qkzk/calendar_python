@@ -98,7 +98,7 @@ def create_or_update_week_events() -> None:
             )
 
         print(EXPLORING_MSG)
-        sync_event_from_md(service, path)
+        sync_event_from_md(agenda, service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 

@@ -26,7 +26,7 @@ from dataclasses import dataclass
 import yaml
 
 # What is the calendar id ?
-CALENDAR_ID = "ja53enipie6bc0b7sdldvlf528@group.calendar.google.com"  # qu3nt1n
+# CALENDAR_ID = "ja53enipie6bc0b7sdldvlf528@group.calendar.google.com"  # qu3nt1n
 # CALENDAR_ID = 'u79g8ba5vo6d8qnt20vebrqp8k@group.calendar.google.com' # leclemenceau
 
 # What is the current year ?

@@ -8,7 +8,7 @@ agendas:
     shortname: "q"
 
   sadia:
-    calendar_id: "12a4d2b4f73f69f3bff737fe718a2a8d700c42523932da3f3a6fd5f730373d18@group.calendar.google.com"
+    calendar_id: "52c9b797bc750981c0630a8fbe84dc94a8751458c00340994d81c99cd55bcd92@group.calendar.google.com"
     default: false
     default_color: "3"
     git_repo_path: "/home/quentin/git_repos/sadia/2023_PS/"
