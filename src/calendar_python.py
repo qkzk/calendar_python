@@ -14,8 +14,8 @@ from googleapiclient.discovery import Resource
 
 
 from .arguments_parser import read_arguments
-from .config import agendas
 from .colors import color_text
+from .config import Agenda, agendas
 from .google_interaction import build_service, sync_event_from_md
 from .logger import logger
 from .states import CalpyStates
@@ -71,10 +71,17 @@ def create_or_update_week_events() -> None:
     update_state_from_inputs(calpy_states)
 
     service: Resource = build_service(calpy_states.agenda)
-    sync_events(service, calpy_states.path_list)
+    sync_events(calpy_states.agenda, service, calpy_states.path_list)
 
 
-def sync_events(service: Resource, path_list: list[str]):
+def sync_events(agenda: Agenda, service: Resource, path_list: list[str]) -> None:
+    """
+    Sync every event from path list using the service and configured agenda id.
+
+    @param agenda: (Agenda) describe a google agenda
+    @param service: (Resource) google api resource
+    @param path_list: (list[str]) the list of .md paths
+    """
     for path in path_list:
         if not exists(path):
             logger.debug("File not found : {}".format(path))
@@ -84,7 +91,7 @@ def sync_events(service: Resource, path_list: list[str]):
             )
 
         print(EXPLORING_MSG)
-        sync_event_from_md(calpy_states.agenda, service, path)
+        sync_event_from_md(agenda, service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 

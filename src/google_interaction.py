@@ -81,6 +81,7 @@ def sync_event_from_md(
     """
     Create or update events from md file
 
+    @param agenda: (Agenda)
     @param service: (Resource) the google api ressource
     @param path: (str) path to the md file
     @returns: (None)

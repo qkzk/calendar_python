@@ -44,18 +44,28 @@ class State:
 
 
 class StateMachineError(Exception):
-    """Raised when a state"""
+    """Raised when a transition between states is impossible."""
 
     pass
 
 
 class StateMachine:
+    """
+    A Finite State Machine.
+    It has a a current state (State) and transitions between states.
+    One of those states should be "initial".
+    """
+
     def __init__(self, transitions: dict[State, dict[str, State]]):
         self.__current: State
         self.__transitions = transitions
-        self.set_initial_state()
+        self.__set_initial_state()
 
-    def set_initial_state(self) -> None:
+    def __set_initial_state(self) -> None:
+        """
+        Set the initial state of the machine.
+        StateMachineError is raised if 0 or more than 1 states are "initial".
+        """
         initial_states = [state for state in self.__transitions if state.initial]
         if len(initial_states) == 0:
             raise StateMachineError("There should be at least one initial state.")
@@ -65,23 +75,36 @@ class StateMachine:
             )
         self.__current = initial_states[0]
 
-    def next(self, param: str) -> None:
-        print(f"Event: {param} - current state: {self.current}", end="")
+    def next(self, event: str) -> None:
+        """Change state from an action"""
         if self.__current.final:
             print()
             return
-        if param in self.__transitions[self.__current]:
-            self.__current = self.__transitions[self.__current][param]
+        if event in self.__transitions[self.__current]:
+            self.__current = self.__transitions[self.__current][event]
             print(f" - next state: {self.current}")
         else:
             print()
+            raise StateMachineError(
+                f"Transition from {self.__current} with event {event} impossible."
+            )
 
     @property
     def current(self) -> State:
+        """
+        The current state of the machine.
+        @return: (State)
+        """
         return self.__current
 
     @current.setter
     def current(self, next) -> None:
+        """
+        Set the current state to a next state.
+        @param next: (State)
+        """
+        if not next in self.__transitions:
+            raise StateMachineError(f"State {next} doesn't exist.")
         self.__current = next
 
     def __repr__(self) -> str:
@@ -89,7 +112,13 @@ class StateMachine:
 
 
 class CalpyStates:
+    """
+    States of the application.
+    It uses a StateMachine and a few parameters.
+    """
+
     def __init__(self):
+        # State of a finite state machine
         self.__ask_agenda = State("ask agenda", initial=True)
         self.__ask_period = State("ask period")
         self.__ask_week = State("ask week")
@@ -97,8 +126,7 @@ class CalpyStates:
         self.__ask_confirmation = State("ask confirmation")
         self.__ready = State("ready", final=True)
 
-        self.__attributes: dict = {}
-
+        # Transitions
         self.__transitions = StateMachine(
             {
                 self.__ask_agenda: {
@@ -123,9 +151,12 @@ class CalpyStates:
                 },
             }
         )
+        # parameters for given states.
         self.__agenda: Union[Agenda, None] = None
         self.__period: Union[int, None] = None
+        self.__period_path: Union[str, None] = None
         self.__weeks: Union[list[int], None] = None
+        self.__path_list: Union[list[str], None] = None
         self.__display: Union[bool, None] = None
         self.__confirmation: Union[bool, None] = None
 
@@ -133,6 +164,15 @@ class CalpyStates:
     def from_arguments_and_config(
         cls, arguments: argparse.Namespace, agendas: list[Agenda]
     ) -> CalpyStates:
+        """
+        Creates an instance of CalpyStates from command line arguments.
+        It may not be in an initial state.
+        If the interactive argument is set to True, no other argument are read.
+
+        @param arguments: (argparse.Namespace) given arguments as defined in `src.argument_parser`
+        @param agendas: (list[Agenda]) a list of configured agendas as definied in `src.config`
+        @return: (CalpyStates) a new state.
+        """
         calpy_state = cls()
         if arguments.interactive:
             return calpy_state
@@ -153,44 +193,102 @@ class CalpyStates:
 
     @property
     def state(self) -> State:
+        """
+        Returns the current state.
+        @return: (State)
+        """
         return self.__transitions.current
 
     @property
-    def agenda(self):
+    def agenda(self) -> Agenda:
+        """
+        Returns the set agenda.
+        If no agenda is set, it will raise a `TypeError`
+        """
+        if self.__agenda is None:
+            raise TypeError("Agenda isn't defined")
         return self.__agenda
 
     @agenda.setter
-    def agenda(self, agenda: Agenda):
+    def agenda(self, agenda: Agenda) -> None:
+        """
+        Set the new agenda and move to the next state.
+        Nothing is done if the state isn't "ask_agenda".
+        The agenda should be a valid one.
+
+        @param agenda: (Agenda) the new agenda.
+        """
         if self.__transitions.current == self.__ask_agenda:
             self.__agenda = agenda
             self.__transitions.next("agenda")
 
     @property
-    def period(self):
+    def period(self) -> int:
+        """
+        Returns the set period.
+
+        @return: (int) the set period. It should be a valid one from config.
+        """
+        if self.__period is None:
+            raise TypeError("period isn't defined.")
         return self.__period
 
     @period.setter
     def period(self, period_number: int):
+        """
+        Set the new period and move to the next state.
+        Nothing is done if the state isn't "ask_period".
+
+        @param period_number: (int) the new period.
+        """
         if self.__transitions.current == self.__ask_period:
-            self.__attributes["period_path"] = self.__build_period_path(period_number)
+            self.__period_path = self.__build_period_path(period_number)
             self.__period = period_number
             self.__transitions.next("period")
 
     def __build_period_path(self, period_number: int) -> str:
-        return f"{self.__agenda.git_repo_path}{CURRENT_YEAR}/periode_{period_number}/"
+        """
+        Creates the period path from the period number.
+
+        @param period_number: (int)
+        @retun: (str) a complete path to the period folder.
+        """
+        return f"{self.agenda.git_repo_path}{CURRENT_YEAR}/periode_{period_number}/"
 
     @property
     def period_path(self) -> str:
-        return self.__attributes["period_path"]
+        """
+        Returns the period path.
+        Raise a TypeError if it isn't defined.
+
+        @return: (str)
+        """
+        if self.__period_path is None:
+            raise TypeError("period path isn't defined")
+        return self.__period_path
 
     @property
-    def weeks(self):
+    def weeks(self) -> list[int]:
+        """
+        Returns the weeks.
+        Raise a TypeError if it isn't defined.
+
+        @return: (list[int])
+        """
+        if self.__weeks is None:
+            raise TypeError("weeks aren't defined.")
         return self.__weeks
 
     @weeks.setter
     def weeks(self, weeks: list[int]):
+        """
+        Set the new weeks.
+        Nothing is done if the state isn't "ask_week".
+
+        @param weeks: list[int]
+        """
         if self.__transitions.current == self.__ask_week:
-            self.__attributes["path_list"] = self.__convert_numbers_to_path(weeks)
+            self.__path_list = self.__convert_numbers_to_path(weeks)
             self.__weeks = weeks
             self.__transitions.next("week")
 
@@ -202,17 +300,13 @@ class CalpyStates:
         Convert the period number and week list into a valid path.
         If the user provided args with correspoding period and weeks, we read it from there.
 
-        @param default_path_md: (str) Path with 2 formatable arguments.
-        @param period_number: (str) Castable into int 1, ..., 5
         @param week_list: (list[int]) can be empty
-        @param arguments: (argparse.Namespace) provided args
         @return: (list[str]) the corresponding path
         """
         # we now have a complete path
         path_list = []
-        print(week_list)
         for week_number in week_list:
-            path = self.__attributes["period_path"] + f"semaine_{week_number}.md"
+            path = self.period_path + f"semaine_{week_number}.md"
             print(color_text(path + "\n", "YELLOW"))
             path_list.append(path)
 
@@ -220,27 +314,61 @@ class CalpyStates:
 
     @property
     def path_list(self) -> list[str]:
-        return self.__attributes["path_list"]
+        """
+        Returns the path list.
+        Raise a `TypeError` if the path_list isn't defined.
+
+        @return: list[str]
+        """
+        if self.__path_list is None:
+            raise TypeError("Path list isn't defined")
+        return self.__path_list
 
     @property
-    def display(self):
+    def display(self) -> bool:
+        """
+        Return the display attribute.
+        Raise a `TypeError` if it isn't defined.
+
+        @return: (bool)
+        """
+        if self.__display is None:
+            raise TypeError("display isn't defined")
         return self.__display
 
     @display.setter
     def display(self, should_display: bool):
+        """
+        Set the new display attribute.
+        Nothing is done if the state isn't `ask display`.
+
+        @param should_display: (bool) should we display the .md content?
+        """
         if self.__transitions.current == self.__ask_display:
             self.__display = should_display
             self.__transitions.next("display")
 
-    def should_display(self) -> bool:
-        return self.__display is True
-
     @property
-    def confirmation(self):
+    def confirmation(self) -> bool:
+        """
+        Should we sync the .md content ?
+        Raise a `TypeError` if the confirmation isn't defined.
+
+        @return: (bool)
+        """
+        if self.__confirmation is None:
+            raise TypeError("Confirmation isn't defined.")
+
         return self.__confirmation
 
     @confirmation.setter
     def confirmation(self, conf: bool):
+        """
+        Set the new confirmation attribute.
+        Nothing is done if the state isn't `ask confirmation`.
+
+        @param should_display: (bool) should we sync the .md content?
+        """
         if not conf:
             self.__transitions.next("reset")
         if self.__transitions.current == self.__ask_confirmation:
@@ -248,13 +376,19 @@ class CalpyStates:
             self.__transitions.next("confirmation")
 
     def reset(self) -> None:
+        """
+        Reset the CalpyStates machine.
+
+        Every attribute is reset to None and the State is set to ask_agenda.
+        """
         self.__agenda = None
         self.__period = None
+        self.__period_path = None
         self.__weeks = None
+        self.__path_list = None
         self.__display = None
         self.__confirmation = None
 
-        self.__attributes = {}
         self.__transitions.next("reset")
 
 
