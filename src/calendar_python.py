@@ -20,7 +20,7 @@ from .google_interaction import build_service, sync_event_from_md
 from .logger import logger
 from .states import CalpyStates
 from .user_interaction import (
-    warn_and_get_path,
+    update_state_from_inputs,
     WRONG_PATH_MSG,
 )
 
@@ -67,13 +67,15 @@ def create_or_update_week_events() -> None:
 
     arguments = read_arguments()
     calpy_states = CalpyStates.from_arguments_and_config(arguments, agendas)
-    print(calpy_states)
 
-    warn_and_get_path(calpy_states)
+    update_state_from_inputs(calpy_states)
 
     service: Resource = build_service(calpy_states.agenda)
+    sync_events(service, calpy_states.path_list)
 
-    for path in calpy_states.path_list:
+
+def sync_events(service: Resource, path_list: list[str]):
+    for path in path_list:
         if not exists(path):
             logger.debug("File not found : {}".format(path))
             raise FileNotFoundError(

@@ -4,10 +4,8 @@ import argparse
 from dataclasses import dataclass
 from typing import Union
 
-from src.colors import color_text
-
-
-from .config import Agenda, default_agenda, CURRENT_YEAR
+from .colors import color_text
+from .config import Agenda, CURRENT_YEAR
 
 
 def pick_agenda(agendas: list[Agenda], agenda_name_from_args: str) -> Agenda:
@@ -23,16 +21,22 @@ def pick_agenda(agendas: list[Agenda], agenda_name_from_args: str) -> Agenda:
             or agenda.shortname == agenda_name_from_args
         ):
             return agenda
-    return default_agenda
+    raise ValueError("No such agenda : ", agenda_name_from_args)
 
 
 @dataclass
 class State:
+    """
+    Represents a state from a Finite State Machine.
+    It has a name (str), can be initial (bool) or final (bool)
+    """
+
     name: str
     initial: bool = False
     final: bool = False
 
     def __hash__(self) -> int:
+        """Allows state to be dict keys."""
         return sum(map(ord, self.name))
 
     def __repr__(self) -> str:
@@ -40,6 +44,8 @@ class State:
 
 
 class StateMachineError(Exception):
+    """Raised when a state"""
+
     pass
 
 
@@ -127,21 +133,20 @@ class CalpyStates:
     def from_arguments_and_config(
         cls, arguments: argparse.Namespace, agendas: list[Agenda]
     ) -> CalpyStates:
-        state = cls()
+        calpy_state = cls()
         if arguments.interactive:
-            return state
+            return calpy_state
         if arguments.agenda:
-            state.agenda = pick_agenda(agendas, arguments.agenda)
+            calpy_state.agenda = pick_agenda(agendas, arguments.agenda)
         if arguments.period_number:
-            state.period = arguments.period_number
+            calpy_state.period = arguments.period_number
         if arguments.week_numbers:
-            state.weeks = arguments.week_numbers
-            print("weeks", state.weeks)
+            calpy_state.weeks = arguments.week_numbers
         if arguments.view_content:
-            state.display = True
+            calpy_state.display = True
         if arguments.yes:
-            state.confirmation = True
-        return state
+            calpy_state.confirmation = True
+        return calpy_state
 
     def __repr__(self) -> str:
         return repr(self.__transitions)

@@ -43,7 +43,6 @@ Warnings !
 """
 GET_PERIOD_MSG = "Please choose a period in [1-5] : "
 GET_WEEK_MSG = "Please choose a week in {} : "
-INPUT_PRINT_MD_FILE = "Do you want to see the content of the file (y/N) ? "
 
 MD_CONTENT_MSG = "This is the content of the .md file :\n"
 INPUT_WARNING_MSG = """LAST WARNING !
@@ -120,50 +119,14 @@ def display_md_content(path: str) -> None:
         print(color_text(mdfile.read(), "BOLD"))
 
 
-def get_md_path_from_args_or_user(
-    root_path: str,
-    arguments: argparse.Namespace,
-    reset_path=False,
-) -> tuple[Union[str, Any], list[Union[int, Any]]]:
-    """
-    Create the path from the args and ask the user what he wants to do.
-
-    @param root_path: (str) formatable path where periods are stored.
-    @param reset_path: (bool) do we have to reset the path ?
-    @return: tuple[Union(str, Any), list[Union[int, Any]]] a pair with period number (1-5) and corresponding weeks
-    """
-    print(color_text(WARNING_MSG, "DARKCYAN"))
-
-    if reset_path or len(sys.argv) == 1:
-        # no parameters were given by the user
-        mode = "Interactive"
-        period_number = ask_user_period()
-        period_path = build_period_path(root_path).format(period_number)
-        week_list = ask_user_week(period_path)
-
-    elif len(sys.argv) < 2:
-        # wrong number of arguments
-        raise ValueError(WRONG_PATH_MSG)
-    else:
-        # the user has provided at least a parameter
-        mode = "CLI arguments"
-        period_number = arguments.period_number
-        week_list = convert_week_numbers(arguments.week_numbers)
-    print(color_text(f"mode: {mode}", "DARKCYAN"))
-    if not week_list:
-        raise ValueError("week_list empty")
-
-    return period_number, week_list
-
-
-def ask_user_period() -> int:
+def ask_period() -> int:
     """
     Asks the user for a valid period number.
     Loops until the user gave a valid period number.
     @returns: (int) a period number from PERIOD_LIST
     """
     while True:
-        period_str = input(GET_PERIOD_MSG)
+        period_str = input(color_text(GET_PERIOD_MSG, "CYAN"))
         try:
             period_number = int(period_str)
         except ValueError:
@@ -183,7 +146,7 @@ def ask_user_week(period_path: str) -> list[int]:
     """
     valid_weeks = get_weeks_from_period(period_path)
     while True:
-        inputed_weeks = input(GET_WEEK_MSG.format(valid_weeks))
+        inputed_weeks = input(color_text(GET_WEEK_MSG.format(valid_weeks), "CYAN"))
         try:
             week_list = list(map(int, inputed_weeks.split(" ")))
         except ValueError:
@@ -192,18 +155,7 @@ def ask_user_week(period_path: str) -> list[int]:
             return week_list
 
 
-def convert_week_numbers(week_numbers: list[str]) -> list[int]:
-    """
-    Casts the week numbers into a list of integers
-    ["1", "2", "3"] -> [1, 2, 3]
-    @param week_numbers: (str) a string containing the week numbers
-    @return: (list[int]) the list of casted strings into integers
-    """
-    print("convert_week_numbers - week_numbers", week_numbers)
-    return list(map(int, week_numbers))
-
-
-def warn_and_get_path(calpy_states: CalpyStates):
+def update_state_from_inputs(calpy_states: CalpyStates):
     """
     Warn the user about what's he's going to do and return the paths provided
     by the user.
@@ -214,84 +166,56 @@ def warn_and_get_path(calpy_states: CalpyStates):
     """
     print(color_text(WELCOME_MSG, "DARKCYAN"))
     print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
-    print(calpy_states)
 
     while not calpy_states.confirmation:
         if calpy_states.agenda is None:
             calpy_states.agenda = ask_agenda()
-        print("after agenda", calpy_states)
+
+        print(color_text(f"Chosen agenda {calpy_states.agenda.longname}", "YELLOW"))
 
         if calpy_states.period is None:
-            calpy_states.period = ask_user_period()
-        print("after period", calpy_states)
+            calpy_states.period = ask_period()
+
+        print(color_text(f"Chosen period {calpy_states.period}", "YELLOW"))
 
         if calpy_states.weeks is None:
             calpy_states.weeks = ask_user_week(calpy_states.period_path)
+        print(color_text(f"Chosen weeks {calpy_states.weeks}", "YELLOW"))
+        print_paths(calpy_states.path_list)
 
         if calpy_states.display is None:
             calpy_states.display = ask_for_display()
+        print(color_text(f"Display content ? {calpy_states.display}", "YELLOW"))
 
-        print("calpy_states.display", calpy_states.display)
         if calpy_states.display:
             for path in calpy_states.path_list:
                 display_md_content(path)
 
         if calpy_states.confirmation is None:
-            calpy_states.confirmation = ask_for_confirmation()
-            if not calpy_states.confirmation:
-                calpy_states.reset()
+            confirmation = ask_for_confirmation()
+            print(color_text(f"Sync ? {confirmation}", "YELLOW"))
+            calpy_states.confirmation = confirmation
+
+        if not calpy_states.confirmation:
+            calpy_states.reset()
 
 
 def ask_agenda() -> Agenda:
     agenda_names = [agenda.longname for agenda in agendas]
     input_agenda = ""
     while input_agenda not in agenda_names:
-        input_agenda = input(f"Quel agenda choisir parmi {agenda_names} ? ")
+        input_agenda = input(
+            color_text(f"Quel agenda choisir parmi {agenda_names} ? ", "CYAN")
+        )
     return pick_agenda(agendas, input_agenda)
 
 
 def ask_for_display() -> bool:
-    return input("Afficher le contenu ? [y/n] ") in ["y", "Y"]
+    return input(color_text("Afficher le contenu ? [y/n] ", "CYAN")) in ["y", "Y"]
 
 
 def ask_for_confirmation() -> bool:
-    return input("Voulez vous synchroniser ? [y/n] ") in ["y", "Y"]
-
-
-def interactive_mode(
-    root_path: str,
-    path_list: list[str],
-    reset_path: bool,
-    input_warning: str,
-    arguments: argparse.Namespace,
-) -> list[str]:
-    """
-    Used when no path could be read from arguments.
-
-    @param root_path: (str) the root folder containing the subfolder for this agenda
-    @param path_list: (list[str]) provided path list. Could be empty.
-    @param reset_path: (bool) should we reset this path ?
-    @param arguments: (argparse.Namespace) provided args
-    @return: (list[str]) the paths
-    """
-    while user_provides_invalid_input(path_list, input_warning):
-        period_number, week_list = get_md_path_from_args_or_user(
-            root_path, arguments, reset_path=reset_path
-        )
-        period_path = build_period_path(root_path)
-        default_path_md = build_default_path_md(period_path)
-        path_list = convert_numbers_to_path(
-            default_path_md,
-            week_list,
-        )
-        # does the user wants to continue ? (that's the last warning)
-        input_warning = input(color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD"))
-        reset_path = True
-        if input_warning in ["n", "N"]:
-            print(QUICK_EXIT_MSG)
-            exit(2)
-    print_paths(path_list)
-    return path_list
+    return input(color_text("Voulez vous synchroniser ? [y/n] ", "CYAN")) in ["y", "Y"]
 
 
 def print_paths(path_list: list[str]) -> None:
@@ -302,19 +226,3 @@ def print_paths(path_list: list[str]) -> None:
     """
     for path in path_list:
         print(color_text(path, "YELLOW"))
-
-
-def user_provides_invalid_input(
-    path_list: list[str],
-    input_warning: str,
-) -> bool:
-    """
-    True if the provided input is invalid
-    inputs are invalid if they can't be converted into a list of valid files
-    or if the user didn't provide a "y".
-
-    @param path_list: (list[str]) a list of valid week numbers
-    @param input_warning: (str) "y" or another inputed string.
-    @returns: (bool) True if the path couldn't be figured or the user typed no.
-    """
-    return not path_list or input_warning != "y"
