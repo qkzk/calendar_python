@@ -77,7 +77,8 @@ class StateMachine:
 
 class CalpyStates:
     def __init__(self):
-        self.__ask_period = State("ask period", initial=True)
+        self.__ask_agenda = State("ask agenda", initial=True)
+        self.__ask_period = State("ask period")
         self.__ask_week = State("ask week")
         self.__ask_display = State("ask display")
         self.__ask_confirmation = State("ask confirmation")
@@ -85,25 +86,29 @@ class CalpyStates:
 
         self.__transitions = StateMachine(
             {
+                self.__ask_agenda: {
+                    "agenda": self.__ask_period,
+                    "reset": self.__ask_agenda,
+                },
                 self.__ask_period: {
                     "period": self.__ask_week,
-                    "reset": self.__ask_period,
+                    "reset": self.__ask_agenda,
                 },
                 self.__ask_week: {
                     "week": self.__ask_display,
-                    "reset": self.__ask_period,
+                    "reset": self.__ask_agenda,
                 },
                 self.__ask_display: {
                     "display": self.__ask_confirmation,
-                    "reset": self.__ask_period,
+                    "reset": self.__ask_agenda,
                 },
                 self.__ask_confirmation: {
                     "confirmation": self.__ready,
-                    "reset": self.__ask_period,
+                    "reset": self.__ask_agenda,
                 },
             }
         )
-
+        self.__agenda: Union[str, None] = None
         self.__period: Union[int, None] = None
         self.__weeks: Union[list[int], None] = None
         self.__display: bool = False
@@ -112,6 +117,16 @@ class CalpyStates:
     @property
     def state(self) -> State:
         return self.__transitions.current
+
+    @property
+    def agenda(self):
+        return self.__agenda
+
+    @agenda.setter
+    def agenda(self, agenda: str):
+        if self.__transitions.current == self.__ask_agenda:
+            self.__agenda = agenda
+            self.__transitions.next("agenda")
 
     @property
     def period(self):
@@ -211,6 +226,8 @@ def test_calpy():
 def test_calpy_state_machine():
     calpy = CalpyStates()
     print(calpy.state)
+    calpy.agenda = "quentin"
+    print(calpy.state)
     calpy.period = 1
     print(calpy.state)
     calpy.weeks = [35, 36]
@@ -218,6 +235,8 @@ def test_calpy_state_machine():
     calpy.display = False
     print(calpy.state)
     calpy.confirmation = False
+    print(calpy.state)
+    calpy.agenda = "quentin"
     print(calpy.state)
     calpy.period = 1
     print(calpy.state)
