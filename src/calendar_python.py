@@ -12,13 +12,17 @@ from os.path import exists
 
 from googleapiclient.discovery import Resource
 
-from src.config import agendas, default_agenda, Agenda
 
 from .arguments_parser import read_arguments
+from .config import agendas
 from .colors import color_text
 from .google_interaction import build_service, sync_event_from_md
 from .logger import logger
-from .user_interaction import warn_and_get_path, WRONG_PATH_MSG
+from .states import CalpyStates
+from .user_interaction import (
+    warn_and_get_path,
+    WRONG_PATH_MSG,
+)
 
 STARTING_APPLICATION_MSG = "Calendar Python started !"
 EXPLORING_MSG = """
@@ -33,22 +37,6 @@ DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 SELECTED_AGENDA_MSG = """
 YOU PICKED THE AGENDA : {}
 """
-
-
-def pick_agenda(agenda_name_from_args: str) -> Agenda:
-    """
-    Returns the selected agenda from command line arguments.
-
-    @param agenda_name_from_args: (str) the parsed name from command line arguments.
-        It may be a short or longname.
-    """
-    for agenda in agendas:
-        if (
-            agenda.longname == agenda_name_from_args
-            or agenda.shortname == agenda_name_from_args
-        ):
-            return agenda
-    return default_agenda
 
 
 def create_or_update_week_events() -> None:
@@ -78,18 +66,14 @@ def create_or_update_week_events() -> None:
     logger.warning(STARTING_APPLICATION_MSG)
 
     arguments = read_arguments()
+    calpy_states = CalpyStates.from_arguments_and_config(arguments, agendas)
+    print(calpy_states)
 
-    # select the correct agenda and print it
-    agenda = pick_agenda(arguments.agenda)
-    print(color_text(SELECTED_AGENDA_MSG.format(agenda.longname), "YELLOW"))
+    warn_and_get_path(calpy_states)
 
-    # get the path from the user, provided as args or not.
-    path_list = warn_and_get_path(arguments, agenda)
-    # if isn't exited yet, we continue.
+    service: Resource = build_service(calpy_states.agenda)
 
-    service: Resource = build_service(agenda)
-
-    for path in path_list:
+    for path in calpy_states.path_list:
         if not exists(path):
             logger.debug("File not found : {}".format(path))
             raise FileNotFoundError(
@@ -98,7 +82,7 @@ def create_or_update_week_events() -> None:
             )
 
         print(EXPLORING_MSG)
-        sync_event_from_md(agenda, service, path)
+        sync_event_from_md(calpy_states.agenda, service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 

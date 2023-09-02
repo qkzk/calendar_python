@@ -5,7 +5,8 @@ from typing import Any, Union
 import argparse
 import sys
 
-
+from .config import agendas, Agenda
+from .states import CalpyStates, pick_agenda
 from .config import CURRENT_YEAR, Agenda
 from .colors import color_text
 
@@ -60,8 +61,6 @@ and a correct week number for that period
 LOGFILE = "calendar_python.log"
 
 PERIOD_LIST = range(1, 6)
-# PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
-# DEFAULT_PATH_MD = PERIOD_PATH + "semaine_{}.md"
 
 
 def build_period_path(agenda_path: str) -> str:
@@ -193,39 +192,6 @@ def ask_user_week(period_path: str) -> list[int]:
             return week_list
 
 
-def convert_numbers_to_path(
-    default_path_md: str,
-    period_number: str,
-    week_list: list[int],
-    arguments: argparse.Namespace,
-) -> list[str]:
-    """
-    Convert the period number and week list into a valid path.
-    If the user provided args with correspoding period and weeks, we read it from there.
-
-    @param default_path_md: (str) Path with 2 formatable arguments.
-    @param period_number: (str) Castable into int 1, ..., 5
-    @param week_list: (list[int]) can be empty
-    @param arguments: (argparse.Namespace) provided args
-    @return: (list[str]) the corresponding path
-    """
-    # we now have a complete path
-    path_list = []
-    for week_number in week_list:
-        path = default_path_md.format(period_number, week_number)
-        print(color_text(path + "\n", "YELLOW"))
-        path_list.append(path)
-
-    # does the user wants to see the events that will be created ?
-
-    if arguments.interactive or arguments.view_content:
-        input_print_md = input(INPUT_PRINT_MD_FILE)
-        if input_print_md == "y":
-            for path in path_list:
-                display_md_content(path)
-    return path_list
-
-
 def convert_week_numbers(week_numbers: list[str]) -> list[int]:
     """
     Casts the week numbers into a list of integers
@@ -237,7 +203,7 @@ def convert_week_numbers(week_numbers: list[str]) -> list[int]:
     return list(map(int, week_numbers))
 
 
-def warn_and_get_path(arguments: argparse.Namespace, agenda: Agenda) -> list[str]:
+def warn_and_get_path(calpy_states: CalpyStates):
     """
     Warn the user about what's he's going to do and return the paths provided
     by the user.
@@ -248,31 +214,48 @@ def warn_and_get_path(arguments: argparse.Namespace, agenda: Agenda) -> list[str
     """
     print(color_text(WELCOME_MSG, "DARKCYAN"))
     print(color_text(color_text(BANNER, "DARKCYAN"), "BOLD"))
-    path_list = []
-    reset_path = False
-    input_warning = ""
+    print(calpy_states)
 
-    # 1st case : wrong arguments from argparse
-    if (
-        arguments.interactive
-        or arguments.period_number is None
-        or arguments.week_numbers == []
-    ):
-        print("Interactive mode")
-        path_list = interactive_mode(
-            agenda.git_repo_path, path_list, reset_path, input_warning, arguments
-        )
-    else:
-        period_path = build_period_path(agenda.git_repo_path)
-        default_path_md = build_default_path_md(period_path)
-        path_list = convert_numbers_to_path(
-            default_path_md, arguments.period_number, arguments.week_numbers, arguments
-        )
-        if not arguments.yes:
-            path_list = interactive_mode(
-                agenda.git_repo_path, path_list, reset_path, input_warning, arguments
-            )
-    return path_list
+    while not calpy_states.confirmation:
+        if calpy_states.agenda is None:
+            calpy_states.agenda = ask_agenda()
+        print("after agenda", calpy_states)
+
+        if calpy_states.period is None:
+            calpy_states.period = ask_user_period()
+        print("after period", calpy_states)
+
+        if calpy_states.weeks is None:
+            calpy_states.weeks = ask_user_week(calpy_states.period_path)
+
+        if calpy_states.display is None:
+            calpy_states.display = ask_for_display()
+
+        print("calpy_states.display", calpy_states.display)
+        if calpy_states.display:
+            for path in calpy_states.path_list:
+                display_md_content(path)
+
+        if calpy_states.confirmation is None:
+            calpy_states.confirmation = ask_for_confirmation()
+            if not calpy_states.confirmation:
+                calpy_states.reset()
+
+
+def ask_agenda() -> Agenda:
+    agenda_names = [agenda.longname for agenda in agendas]
+    input_agenda = ""
+    while input_agenda not in agenda_names:
+        input_agenda = input(f"Quel agenda choisir parmi {agenda_names} ? ")
+    return pick_agenda(agendas, input_agenda)
+
+
+def ask_for_display() -> bool:
+    return input("Afficher le contenu ? [y/n] ") in ["y", "Y"]
+
+
+def ask_for_confirmation() -> bool:
+    return input("Voulez vous synchroniser ? [y/n] ") in ["y", "Y"]
 
 
 def interactive_mode(
@@ -298,7 +281,8 @@ def interactive_mode(
         period_path = build_period_path(root_path)
         default_path_md = build_default_path_md(period_path)
         path_list = convert_numbers_to_path(
-            default_path_md, period_number, week_list, arguments
+            default_path_md,
+            week_list,
         )
         # does the user wants to continue ? (that's the last warning)
         input_warning = input(color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD"))
