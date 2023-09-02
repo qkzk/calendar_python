@@ -70,6 +70,7 @@ Principe :
 - rotating file log
 - all day events spanning multiple days (creation & update)
 - separate into multiple files (color, logger, google api)
+- configure multiple agendas from a config file. Specify from an argument
 
 # Sources :
 

@@ -6,7 +6,7 @@ import argparse
 import sys
 
 
-from .config import CURRENT_YEAR, GIT_COURS_REPO_PATH
+from .config import CURRENT_YEAR, Agenda
 from .colors import color_text
 
 # messages
@@ -60,8 +60,30 @@ and a correct week number for that period
 LOGFILE = "calendar_python.log"
 
 PERIOD_LIST = range(1, 6)
-PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
-DEFAULT_PATH_MD = PERIOD_PATH + "semaine_{}.md"
+# PERIOD_PATH = f"{GIT_COURS_REPO_PATH}{CURRENT_YEAR}/" + "periode_{}/"
+# DEFAULT_PATH_MD = PERIOD_PATH + "semaine_{}.md"
+
+
+def build_period_path(agenda_path: str) -> str:
+    """
+    Returns the formatable root path where 'periode' are stored.
+
+    @param agenda_path: (str) where are files stored.
+    @return: (str) formatable period path.
+    """
+    return f"{agenda_path}{CURRENT_YEAR}/" + "periode_{}/"
+
+
+def build_default_path_md(period_path: str) -> str:
+    """
+    Returns the formatable week path.
+
+    @param period_path: (str) formated root path where 'periode'
+        are stored
+    @return: (str) formatable week path where every week is
+        stored
+    """
+    return period_path + "semaine_{}.md"
 
 
 def extract_number_from_path(week_md_filename: str) -> int:
@@ -100,11 +122,14 @@ def display_md_content(path: str) -> None:
 
 
 def get_md_path_from_args_or_user(
+    root_path: str,
     arguments: argparse.Namespace,
     reset_path=False,
 ) -> tuple[Union[str, Any], list[Union[int, Any]]]:
     """
     Create the path from the args and ask the user what he wants to do.
+
+    @param root_path: (str) formatable path where periods are stored.
     @param reset_path: (bool) do we have to reset the path ?
     @return: tuple[Union(str, Any), list[Union[int, Any]]] a pair with period number (1-5) and corresponding weeks
     """
@@ -114,7 +139,7 @@ def get_md_path_from_args_or_user(
         # no parameters were given by the user
         mode = "Interactive"
         period_number = ask_user_period()
-        period_path = PERIOD_PATH.format(period_number)
+        period_path = build_period_path(root_path).format(period_number)
         week_list = ask_user_week(period_path)
 
     elif len(sys.argv) < 2:
@@ -169,12 +194,16 @@ def ask_user_week(period_path: str) -> list[int]:
 
 
 def convert_numbers_to_path(
-    period_number: str, week_list: list[int], arguments: argparse.Namespace
+    default_path_md: str,
+    period_number: str,
+    week_list: list[int],
+    arguments: argparse.Namespace,
 ) -> list[str]:
     """
     Convert the period number and week list into a valid path.
     If the user provided args with correspoding period and weeks, we read it from there.
 
+    @param default_path_md: (str) Path with 2 formatable arguments.
     @param period_number: (str) Castable into int 1, ..., 5
     @param week_list: (list[int]) can be empty
     @param arguments: (argparse.Namespace) provided args
@@ -183,7 +212,7 @@ def convert_numbers_to_path(
     # we now have a complete path
     path_list = []
     for week_number in week_list:
-        path = DEFAULT_PATH_MD.format(period_number, week_number)
+        path = default_path_md.format(period_number, week_number)
         print(color_text(path + "\n", "YELLOW"))
         path_list.append(path)
 
@@ -204,10 +233,11 @@ def convert_week_numbers(week_numbers: list[str]) -> list[int]:
     @param week_numbers: (str) a string containing the week numbers
     @return: (list[int]) the list of casted strings into integers
     """
+    print("convert_week_numbers - week_numbers", week_numbers)
     return list(map(int, week_numbers))
 
 
-def warn_and_get_path(arguments: argparse.Namespace) -> list[str]:
+def warn_and_get_path(arguments: argparse.Namespace, agenda: Agenda) -> list[str]:
     """
     Warn the user about what's he's going to do and return the paths provided
     by the user.
@@ -228,21 +258,25 @@ def warn_and_get_path(arguments: argparse.Namespace) -> list[str]:
         or arguments.period_number is None
         or arguments.week_numbers == []
     ):
-
         print("Interactive mode")
-        path_list = interactive_mode(path_list, reset_path, input_warning, arguments)
+        path_list = interactive_mode(
+            agenda.git_repo_path, path_list, reset_path, input_warning, arguments
+        )
     else:
+        period_path = build_period_path(agenda.git_repo_path)
+        default_path_md = build_default_path_md(period_path)
         path_list = convert_numbers_to_path(
-            arguments.period_number, arguments.week_numbers, arguments
+            default_path_md, arguments.period_number, arguments.week_numbers, arguments
         )
         if not arguments.yes:
             path_list = interactive_mode(
-                path_list, reset_path, input_warning, arguments
+                agenda.git_repo_path, path_list, reset_path, input_warning, arguments
             )
     return path_list
 
 
 def interactive_mode(
+    root_path: str,
     path_list: list[str],
     reset_path: bool,
     input_warning: str,
@@ -251,16 +285,21 @@ def interactive_mode(
     """
     Used when no path could be read from arguments.
 
-    @param path_list: list[str] provided path list. Could be empty.
+    @param root_path: (str) the root folder containing the subfolder for this agenda
+    @param path_list: (list[str]) provided path list. Could be empty.
     @param reset_path: (bool) should we reset this path ?
     @param arguments: (argparse.Namespace) provided args
     @return: (list[str]) the paths
     """
     while user_provides_invalid_input(path_list, input_warning):
         period_number, week_list = get_md_path_from_args_or_user(
-            arguments, reset_path=reset_path
+            root_path, arguments, reset_path=reset_path
         )
-        path_list = convert_numbers_to_path(period_number, week_list, arguments)
+        period_path = build_period_path(root_path)
+        default_path_md = build_default_path_md(period_path)
+        path_list = convert_numbers_to_path(
+            default_path_md, period_number, week_list, arguments
+        )
         # does the user wants to continue ? (that's the last warning)
         input_warning = input(color_text(color_text(INPUT_WARNING_MSG, "RED"), "BOLD"))
         reset_path = True

@@ -12,6 +12,8 @@ from os.path import exists
 
 from googleapiclient.discovery import Resource
 
+from src.config import agendas, default_agenda, Agenda
+
 from .arguments_parser import read_arguments
 from .colors import color_text
 from .google_interaction import build_service, sync_event_from_md
@@ -27,6 +29,26 @@ CONFIRMATION_MSG = """
 DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
 
 """
+
+SELECTED_AGENDA_MSG = """
+YOU PICKED THE AGENDA : {}
+"""
+
+
+def pick_agenda(agenda_name_from_args: str) -> Agenda:
+    """
+    Returns the selected agenda from command line arguments.
+
+    @param agenda_name_from_args: (str) the parsed name from command line arguments.
+        It may be a short or longname.
+    """
+    for agenda in agendas:
+        if (
+            agenda.longname == agenda_name_from_args
+            or agenda.shortname == agenda_name_from_args
+        ):
+            return agenda
+    return default_agenda
 
 
 def create_or_update_week_events() -> None:
@@ -56,12 +78,16 @@ def create_or_update_week_events() -> None:
     logger.warning(STARTING_APPLICATION_MSG)
 
     arguments = read_arguments()
-    print(arguments)
+
+    # select the correct agenda and print it
+    agenda = pick_agenda(arguments.agenda)
+    print(color_text(SELECTED_AGENDA_MSG.format(agenda.longname), "YELLOW"))
+
     # get the path from the user, provided as args or not.
-    path_list = warn_and_get_path(arguments)
+    path_list = warn_and_get_path(arguments, agenda)
     # if isn't exited yet, we continue.
 
-    service: Resource = build_service()
+    service: Resource = build_service(agenda)
 
     for path in path_list:
         if not exists(path):
@@ -72,7 +98,7 @@ def create_or_update_week_events() -> None:
             )
 
         print(EXPLORING_MSG)
-        sync_event_from_md(service, path)
+        sync_event_from_md(agenda, service, path)
         print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
 
 
