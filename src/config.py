@@ -42,7 +42,7 @@ TIMEZONE = "Europe/Paris"
 # What colors do you want to use for specific content ?
 # See documentation above
 STUDENT_CLASS_COLORS = {
-    "2": ["ISN", "tale nsi"],
+    "2": ["ISN", "tale nsi", "tnsi"],
     "1": ["1ere NSI"],
     "9": ["ap", "orientation", "AP"],
     "8": ["2nd", "train"],
