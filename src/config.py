@@ -98,8 +98,23 @@ def read_config_file(config_path: str) -> list[Agenda]:
     """
     with open(config_path, "r", encoding="utf-8") as config_file:
         config_content = yaml.safe_load(config_file)
-        print(config_content)
         return [Agenda.from_yaml(value) for value in config_content["agendas"].values()]
+
+
+def pick_agenda(agendas: list[Agenda], agenda_name_from_args: str) -> Agenda:
+    """
+    Returns the selected agenda from command line arguments.
+
+    @param agenda_name_from_args: (str) the parsed name from command line arguments.
+        It may be a short or longname.
+    """
+    for agenda in agendas:
+        if (
+            agenda.longname == agenda_name_from_args
+            or agenda.shortname == agenda_name_from_args
+        ):
+            return agenda
+    raise ValueError("No such agenda : ", agenda_name_from_args)
 
 
 agendas = read_config_file("./config.yml")

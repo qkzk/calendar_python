@@ -5,23 +5,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from .colors import color_text
-from .config import Agenda, CURRENT_YEAR
-
-
-def pick_agenda(agendas: list[Agenda], agenda_name_from_args: str) -> Agenda:
-    """
-    Returns the selected agenda from command line arguments.
-
-    @param agenda_name_from_args: (str) the parsed name from command line arguments.
-        It may be a short or longname.
-    """
-    for agenda in agendas:
-        if (
-            agenda.longname == agenda_name_from_args
-            or agenda.shortname == agenda_name_from_args
-        ):
-            return agenda
-    raise ValueError("No such agenda : ", agenda_name_from_args)
+from .config import Agenda, CURRENT_YEAR, pick_agenda
 
 
 @dataclass
@@ -78,13 +62,10 @@ class StateMachine:
     def next(self, event: str) -> None:
         """Change state from an action"""
         if self.__current.final:
-            print()
             return
         if event in self.__transitions[self.__current]:
             self.__current = self.__transitions[self.__current][event]
-            print(f" - next state: {self.current}")
         else:
-            print()
             raise StateMachineError(
                 f"Transition from {self.__current} with event {event} impossible."
             )
@@ -96,16 +77,6 @@ class StateMachine:
         @return: (State)
         """
         return self.__current
-
-    @current.setter
-    def current(self, next) -> None:
-        """
-        Set the current state to a next state.
-        @param next: (State)
-        """
-        if not next in self.__transitions:
-            raise StateMachineError(f"State {next} doesn't exist.")
-        self.__current = next
 
     def __repr__(self) -> str:
         return f"StateMachine with current state : {self.__current}"
@@ -200,13 +171,11 @@ class CalpyStates:
         return self.__transitions.current
 
     @property
-    def agenda(self) -> Agenda:
+    def agenda(self) -> Union[Agenda, None]:
         """
         Returns the set agenda.
         If no agenda is set, it will raise a `TypeError`
         """
-        if self.__agenda is None:
-            raise TypeError("Agenda isn't defined")
         return self.__agenda
 
     @agenda.setter
@@ -223,14 +192,12 @@ class CalpyStates:
             self.__transitions.next("agenda")
 
     @property
-    def period(self) -> int:
+    def period(self) -> Union[int, None]:
         """
         Returns the set period.
 
         @return: (int) the set period. It should be a valid one from config.
         """
-        if self.__period is None:
-            raise TypeError("period isn't defined.")
         return self.__period
 
     @period.setter
@@ -268,15 +235,13 @@ class CalpyStates:
         return self.__period_path
 
     @property
-    def weeks(self) -> list[int]:
+    def weeks(self) -> Union[list[int], None]:
         """
         Returns the weeks.
         Raise a TypeError if it isn't defined.
 
         @return: (list[int])
         """
-        if self.__weeks is None:
-            raise TypeError("weeks aren't defined.")
         return self.__weeks
 
     @weeks.setter
@@ -325,15 +290,13 @@ class CalpyStates:
         return self.__path_list
 
     @property
-    def display(self) -> bool:
+    def display(self) -> Union[bool, None]:
         """
         Return the display attribute.
         Raise a `TypeError` if it isn't defined.
 
         @return: (bool)
         """
-        if self.__display is None:
-            raise TypeError("display isn't defined")
         return self.__display
 
     @display.setter
@@ -349,16 +312,13 @@ class CalpyStates:
             self.__transitions.next("display")
 
     @property
-    def confirmation(self) -> bool:
+    def confirmation(self) -> Union[bool, None]:
         """
         Should we sync the .md content ?
         Raise a `TypeError` if the confirmation isn't defined.
 
         @return: (bool)
         """
-        if self.__confirmation is None:
-            raise TypeError("Confirmation isn't defined.")
-
         return self.__confirmation
 
     @confirmation.setter
