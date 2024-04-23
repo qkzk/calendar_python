@@ -1,5 +1,23 @@
 """
-title: parser of command line arguments
+Example of valid format
+
+Valid format:
+
+filename : $AGENDAPATH/periode_1/semaine_44.md
+filecontent:
+
+# Semaine 44 - du lundi 30 octobre au dimanche 05 novembre
+
+- location - content. Next is date of end - Vendredi 3 Novembre
+
+## lundi 30 octobre
+
+- 10h-11h - home - gardening
+
+## mardi 31 octobre
+
+- 7h-8h - city - doctor
+...
 """
 
 import argparse
@@ -13,11 +31,16 @@ def read_arguments() -> argparse.Namespace:
         The user can also review the content.
     -v, -- view_content: display the markdown content
     -y, --yes: Don't ask confirmation
+    -h, --help: Print a valid example of content
+    -a, --agenda: a valid and configured agenda
     [period_number]: (int) between 1 and 5
     [week_numbers]: ([int]) corresponding week numbers. Must belong to that period
     """
     parser = argparse.ArgumentParser(
-        description="""Synchronise your markdown calendars with Google Calendar."""
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""Synchronise your markdown calendars with Google Calendar.""",
+        epilog=__doc__,
+        usage="calpy -a q 1 35 36 -y",
     )
 
     group = parser.add_mutually_exclusive_group()
@@ -44,6 +67,7 @@ def read_arguments() -> argparse.Namespace:
         "-v",
         "--view_content",
         default=True,
+        help="display the content of .md file",
         action="store_false",
     )
 
@@ -51,6 +75,7 @@ def read_arguments() -> argparse.Namespace:
         "-y",
         "--yes",
         default=False,
+        help="Don't ask confirmation",
         action="store_true",
     )
 
@@ -58,6 +83,7 @@ def read_arguments() -> argparse.Namespace:
         "-a",
         "--agenda",
         default="quentin",
+        help="A valid and configured agenda name -- default to 'quentin'",
         type=str,
     )
 

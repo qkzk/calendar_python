@@ -8,6 +8,7 @@ description:
 événements dans google calendar'
 ---
 """
+
 from os.path import exists
 
 from googleapiclient.discovery import Resource
@@ -66,6 +67,8 @@ def create_or_update_week_events() -> None:
     logger.warning(STARTING_APPLICATION_MSG)
 
     arguments = read_arguments()
+    print(arguments)
+    # exit()
     calpy_states = CalpyStates.from_arguments_and_config(arguments, agendas)
 
     update_state_from_inputs(calpy_states)

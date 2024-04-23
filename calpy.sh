@@ -2,7 +2,7 @@
 
 # get the current dir
 CURRPATH="$( cd "$(dirname "$0")" ; pwd -P )"
-SCRIPTATH="/home/quentin/gclem/dev/python/boulot_utils/calendar_python"
+SCRIPTATH="/home/quentin/gclem/dev/python/boulot_utils/calpy_branches"
 
 # get the message
 if [[ $# > 1 ]]; then
