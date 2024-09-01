@@ -20,6 +20,7 @@ COLORS = {
     "8":  "#e1e1e1",  # gris clair
 }
 """
+
 from __future__ import annotations
 from dataclasses import dataclass
 
@@ -31,7 +32,7 @@ import yaml
 
 # What is the current year ?
 # school year, for 2023-2024 use 2023
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2024
 
 # Where are the .md files stored ?
 GIT_COURS_REPO_PATH = "/home/quentin/gdrive/cours/git_cours/cours/"
@@ -42,15 +43,16 @@ TIMEZONE = "Europe/Paris"
 # What colors do you want to use for specific content ?
 # See documentation above
 STUDENT_CLASS_COLORS = {
+    "1": ["1NSI", "1ere NSI"],
     "2": ["ISN", "tale nsi", "tnsi"],
-    "1": ["1ere NSI"],
-    "9": ["ap", "orientation", "AP"],
-    "8": ["2nd", "train"],
-    "6": ["tmg2"],
-    "11": ["l2s3", "l1s2", "l2s4", "croqmaths"],
-    "7": ["imt", "CP2", "CP1"],
-    "10": ["cdr", "CDR"],
+    "3": ["SNT"],
     "3": ["réunion", "reunion", "conseil", "PP", "default"],
+    "4": ["l2s3", "l1s2", "l2s4", "l1s1", "croqmaths"],
+    "6": ["tmg2"],
+    "7": ["imt", "CP2", "CP1"],
+    "8": ["2nd", "train"],
+    "9": ["ap", "orientation", "AP"],
+    "10": ["cdr", "CDR"],
 }
 
 # What default color do you want ?
