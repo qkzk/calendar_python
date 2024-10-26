@@ -59,6 +59,26 @@ class Event:
         assert isinstance(event.description, str)
         assert isinstance(event.colorId, str)
 
+    def is_equal(self, event: Event) -> bool:
+        """
+        Compare two events.
+        They are equal if they share the same :
+            - start,
+            - end,
+            - location,
+            - summary,
+            - description,
+            - colorId
+        """
+        return (
+            self.start == event.start
+            and self.end == event.end
+            and self.location == event.location
+            and self.summary == event.summary
+            and self.description == event.description
+            and self.colorId == event.colorId
+        )
+
     def update(self, event: Event) -> None:
         """
         Update values from new event.

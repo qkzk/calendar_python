@@ -331,19 +331,22 @@ def update_event(
     @param old_event: (Event) the old event to update
     @returns: (None)
     """
-    old_event.update(new_event)
+    if old_event.is_equal(new_event):
+        unchanged_event_msg = f"Event didn't change: {new_event.readable_start_date()} {old_event.htmlLink}"
+        print(color_text(unchanged_event_msg, "PURPLE"))
+        logger.warning(unchanged_event_msg)
+    else:
+        old_event.update(new_event)
 
-    updated_data = (
-        service.events()
-        .update(
-            calendarId=agenda.calendar_id,
-            eventId=old_event.id,
-            body=old_event.__dict__,
+        updated_data = (
+            service.events()
+            .update(
+                calendarId=agenda.calendar_id,
+                eventId=old_event.id,
+                body=old_event.__dict__,
+            )
+            .execute()
         )
-        .execute()
-    )
-    update_event_msg = (
-        f"Event updated: {new_event.readable_start_date()} {updated_data['htmlLink']}"
-    )
-    print(color_text(update_event_msg, "CYAN"))
-    logger.warning(update_event_msg)
+        unchanged_event_msg = f"Event updated: {new_event.readable_start_date()} {updated_data['htmlLink']}"
+        print(color_text(unchanged_event_msg, "CYAN"))
+        logger.warning(unchanged_event_msg)
