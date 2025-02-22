@@ -6,6 +6,8 @@ from pytz import timezone
 
 import caldav
 
+from src.google_interaction import one_day_earlier
+
 from .arguments_parser import read_arguments
 from .calendar_python import CONFIRMATION_MSG, EXPLORING_MSG, STARTING_APPLICATION_MSG
 from .colors import color_text
@@ -120,6 +122,24 @@ def update_or_create_event(
     else:
         # TODO: day events
         print("TODO")
+
+
+# def create_or_update_day_event(
+#     calendar: caldav.Calendar,
+#     event_details: Event,
+# ):
+#     timeMin = one_day_earlier(event_details.start["date"])
+#     timeMax = event_details.end["date"] + "T00:00:00Z"
+#     existing_events = list(
+#         retrieve_day_events_matching_date(calendar, timeMin, timeMax)
+#     )
+#     if event_details in existing_events:
+#         update_event(
+#             new_event=event_details,
+#             old_event=existing_events[existing_events.index(event_details)],
+#         )
+#     else:
+#         create_event(calendar, event_details=event_details)
 
 
 def create_or_update_timed_event(
