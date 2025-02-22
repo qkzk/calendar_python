@@ -7,7 +7,8 @@ if __name__ == "__main__":
     old_path = os.getcwd()
     os.chdir("/home/quentin/gclem/dev/python/boulot_utils/calpy_branches")
 
-    from src import create_or_update_week_events
+    from src import create_or_update_week_events, create_or_update_week_events_nextcloud
 
     create_or_update_week_events()
+    create_or_update_week_events_nextcloud()
     os.chdir(old_path)

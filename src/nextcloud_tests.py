@@ -1,10 +1,10 @@
-from datetime import datetime
+import datetime
 import re
 
 import caldav
 import icalendar
 
-from model import Event
+from .model import Event
 
 BASE_URL = "http://qkzk.ddns.net:81/remote.php/dav/"
 USERNAME = "qkzk"
@@ -48,6 +48,14 @@ def display_event(calendar: caldav.Calendar) -> None:
         # back_to_caldav = internal_event_to_caldav(internal, calendar)
         #
         # print(back_to_caldav.data)
+    ev = calendar.save_event(
+        dtstart=datetime.datetime(2025, 2, 20, 12, 0),
+        dtend=datetime.datetime(2025, 2, 20, 13, 0),
+        summary="from python",
+        description="from python desc",
+        location="1 rue solférino, Lille 59000",
+    )
+    print(ev)
 
 
 def caldav_event_to_internal(event: caldav.Event) -> Event:
@@ -76,7 +84,10 @@ def caldav_event_to_internal(event: caldav.Event) -> Event:
     dtstart = vevent.get("DTSTART").dt
     dtend = vevent.get("DTEND").dt
 
-    is_all_day = isinstance(dtstart, datetime) and dtstart.time() == datetime.min.time()
+    is_all_day = (
+        isinstance(dtstart, datetime.datetime)
+        and dtstart.time() == datetime.datetime.min.time()
+    )
 
     return Event(
         id=event_id,
@@ -99,7 +110,6 @@ def caldav_event_to_internal(event: caldav.Event) -> Event:
     )
 
 
-from datetime import datetime, timedelta
 from pytz import timezone
 from icalendar import (
     Event as ICalEvent,
@@ -113,72 +123,26 @@ from icalendar import (
 )
 
 
-def internal_event_to_caldav(event: Event, calendar: caldav.Calendar) -> caldav.Event:
+def sync_internal_event(event: Event, calendar: caldav.Calendar) -> caldav.Event:
     """Convert an internal Event object to a CalDAV Event and add it to the calendar."""
 
     tz = timezone("Europe/Paris")
 
     # Convert string timestamps to datetime
-    dtstart_obj = datetime.fromisoformat(
+    dtstart = datetime.datetime.fromisoformat(
         event.start.get("dateTime", event.start.get("date"))
     ).astimezone(tz)
-    dtend_obj = datetime.fromisoformat(
+    dtend = datetime.datetime.fromisoformat(
         event.end.get("dateTime", event.end.get("date"))
     ).astimezone(tz)
 
-    # Create iCalendar object
-    ical_event = Calendar()
-    ical_event.add("prodid", "-//Nextcloud//NONSGML v1.0//EN")
-    ical_event.add("version", "2.0")
-
-    # Create VEVENT
-    event_component = ICalEvent()
-    event_component.add("uid", event.id)
-    event_component.add("summary", event.summary or "%")
-    event_component.add("description", event.description or "super")
-    event_component.add("location", event.location or "")
-    event_component.add("dtstamp", datetime.now().astimezone(tz))
-
-    # Ensure `DTSTART` and `DTEND` have `TZID`
-    event_component.add("dtstart", dtstart_obj, parameters={"TZID": "Europe/Paris"})
-    event_component.add("dtend", dtend_obj, parameters={"TZID": "Europe/Paris"})
-
-    ical_event.add_component(event_component)
-
-    # Define VTIMEZONE Component
-    vtimezone = Timezone()
-    vtimezone.add("TZID", "Europe/Paris")
-
-    standard = TimezoneStandard()
-    standard.add("DTSTART", datetime(1970, 1, 1, 0, 0, 0))
-    tt = caldav.timedelta(hours=1)
-    tt2 = caldav.timedelta(hours=2)
-    standard.add("TZOFFSETFROM", tt)
-    standard.add("TZOFFSETTO", tt)
-    standard.add("TZNAME", "CET")
-
-    daylight = TimezoneDaylight()
-    # daylight.add("DTSTART", datetime(1970, 3, 29, 2, 0, 0))
-    #
-    # daylight.add("RRULE", "FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3")
-    # daylight.add("RRULE", vRecur({"FREQ": "YEARLY", "BYDAY": "-1SU", "BYMONTH": 3}))
-    # daylight["RRULE"] = vRecur({"FREQ": "YEARLY", "BYDAY": "-1SU", "BYMONTH": 3})
-
-    daylight.add("DTSTART", datetime(1970, 3, 29, 2, 0, 0))
-    daylight.add("RRULE", vRecur({"FREQ": "YEARLY", "BYDAY": "-1SU", "BYMONTH": 3}))
-    daylight.add("TZOFFSETFROM", vUTCOffset(timedelta(hours=1)))
-    daylight.add("TZOFFSETTO", vUTCOffset(timedelta(hours=2)))
-    daylight.add("TZNAME", "CEST")
-
-    vtimezone.add_component(standard)
-    vtimezone.add_component(daylight)
-
-    ical_event.add_component(vtimezone)
-
-    decoded = ical_event.to_ical().decode("utf-8")
-    print(decoded)
-
-    return calendar.add_event(ical_event.to_ical().decode("utf-8"))
+    return calendar.add_event(
+        dtstart=dtstart,
+        dtend=dtend,
+        summary=event.summary,
+        description=event.description,
+        location=event.location,
+    )
 
 
 def example() -> None:
