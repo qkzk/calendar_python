@@ -332,9 +332,9 @@ def update_event(
     @returns: (None)
     """
     if old_event.is_equal(new_event):
-        unchanged_event_msg = f"Event didn't change: {new_event.readable_start_date()} {old_event.htmlLink}"
-        print(color_text(unchanged_event_msg, "PURPLE"))
-        logger.warning(unchanged_event_msg)
+        changed_event_msg = f"Event didn't change: {new_event.readable_start_date()} {old_event.htmlLink}"
+        print(color_text(changed_event_msg, "PURPLE"))
+        logger.warning(changed_event_msg)
     else:
         old_event.update(new_event)
 
@@ -347,6 +347,6 @@ def update_event(
             )
             .execute()
         )
-        unchanged_event_msg = f"Event updated: {new_event.readable_start_date()} {updated_data['htmlLink']}"
-        print(color_text(unchanged_event_msg, "CYAN"))
-        logger.warning(unchanged_event_msg)
+        changed_event_msg = f"Event updated: {new_event.readable_start_date()} {updated_data['htmlLink']}"
+        print(color_text(changed_event_msg, "CYAN"))
+        logger.warning(changed_event_msg)
