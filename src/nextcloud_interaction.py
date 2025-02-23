@@ -18,22 +18,20 @@ from .model import Event
 from .states import CalpyStates
 from .user_interaction import WRONG_PATH_MSG, update_state_from_inputs
 
-# BASE_URL = "http://qkzk.ddns.net:81/remote.php/dav/"
-# USERNAME = "qkzk"
 APP_PASSWORD_PATH = "tokens/quentin/nextcloud"
 
 NEXTCLOUD_COLORS = {
-    "11": "CRIMSON",
-    "4": "LIGHTCORAL",
-    "6": "SANDYBROWN",
-    "5": "GOLD",
-    "10": "LIMEGREEN",
-    "2": "AQUAMARINE",
-    "7": "MEDIUMTURQUOISE",
-    "9": "ROYALBLUE",
-    "1": "SKYBLUE",
-    "3": "PLUM",
-    "8": "GAINSBORO",
+    "11": "crimson",
+    "4": "lightcoral",
+    "6": "sandybrown",
+    "5": "gold",
+    "10": "limegreen",
+    "2": "aquamarine",
+    "7": "mediumturquoise",
+    "9": "royalblue",
+    "1": "skyblue",
+    "3": "plum",
+    "8": "gainsboro",
 }
 
 
@@ -41,7 +39,6 @@ def create_or_update_week_events_nextcloud() -> None:
     logger.warning(STARTING_APPLICATION_MSG)
     arguments = read_arguments()
     print(arguments)
-    # exit()
     calpy_states = CalpyStates.from_arguments_and_config(arguments, agendas)
     update_state_from_inputs(calpy_states)
     calendar = connect_nextcloud()
@@ -119,27 +116,20 @@ def update_or_create_event(
 ) -> None:
     if not event_details.is_all_day:
         create_or_update_timed_event(calendar, event_details)
+        pass
     else:
-        # TODO: day events
-        print("TODO")
+        create_or_update_day_event(calendar, event_details)
 
 
-# def create_or_update_day_event(
-#     calendar: caldav.Calendar,
-#     event_details: Event,
-# ):
-#     timeMin = one_day_earlier(event_details.start["date"])
-#     timeMax = event_details.end["date"] + "T00:00:00Z"
-#     existing_events = list(
-#         retrieve_day_events_matching_date(calendar, timeMin, timeMax)
-#     )
-#     if event_details in existing_events:
-#         update_event(
-#             new_event=event_details,
-#             old_event=existing_events[existing_events.index(event_details)],
-#         )
-#     else:
-#         create_event(calendar, event_details=event_details)
+def create_or_update_day_event(
+    calendar: caldav.Calendar,
+    event_details: Event,
+):
+    existing_event = find_day_event_matching_date(event_details, calendar)
+    if existing_event is None:
+        create_day_event(calendar, event_details=event_details)
+    else:
+        update_timed_event(new_event=event_details, old_event=existing_event)
 
 
 def create_or_update_timed_event(
@@ -148,15 +138,30 @@ def create_or_update_timed_event(
 ) -> None:
     existing_event = find_timed_event_matching_time(event_details, calendar)
     if existing_event is None:
-        create_event(
+        create_timed_event(
             calendar,
             event_details,
         )
     else:
-        update_event(
+        update_timed_event(
             new_event=event_details,
             old_event=existing_event,
         )
+
+
+def find_day_event_matching_date(
+    event: Event,
+    calendar: caldav.Calendar,
+) -> caldav.Event | None:
+    if not event.is_all_day:
+        return None
+    timeMin = event.start["date"]
+    timeMax = event.end["date"]
+
+    events_filtered = retrieve_day_events(timeMin, timeMax, calendar)
+
+    if events_filtered:
+        return events_filtered[0]
 
 
 def find_timed_event_matching_time(
@@ -168,7 +173,7 @@ def find_timed_event_matching_time(
     timeMin = event.start["dateTime"]
     timeMax = event.end["dateTime"]
 
-    events_filtered = retrieve_events(timeMin, timeMax, calendar)
+    events_filtered = retrieve_timed_events(timeMin, timeMax, calendar)
 
     if events_filtered:
         return events_filtered[0]
@@ -178,7 +183,36 @@ def caldav_event_vevent(event: caldav.Event):
     return event.icalendar_component
 
 
-def retrieve_events(
+def retrieve_day_events(
+    timeMin: str,
+    timeMax: str,
+    calendar: caldav.Calendar,
+) -> list[caldav.Event]:
+
+    tz = timezone("Europe/Paris")
+    time_min = datetime.datetime.fromisoformat(timeMin).astimezone(tz)
+    time_max = datetime.datetime.fromisoformat(timeMax).astimezone(tz)
+
+    events = []
+    for event in calendar.events():
+        vevent = caldav_event_vevent(event)
+        if not vevent:
+            continue
+        dtstart: datetime.datetime = vevent.get("DTSTART").dt
+        dtstart = datetime.datetime.combine(
+            dtstart, datetime.datetime.min.time()
+        ).astimezone(tz)
+        dtend: datetime.datetime = vevent.get("DTEND").dt
+        dtend = datetime.datetime.combine(
+            dtend, datetime.datetime.min.time()
+        ).astimezone(tz)
+        delta = dtend - dtstart
+        if delta >= datetime.timedelta(hours=24) and time_min <= dtstart <= time_max:
+            events.append(event)
+    return events
+
+
+def retrieve_timed_events(
     timeMin: str,
     timeMax: str,
     calendar: caldav.Calendar,
@@ -192,21 +226,45 @@ def retrieve_events(
         if not vevent:
             continue
         dtstart: datetime.datetime = vevent.get("DTSTART").dt
+        # dtstart for day event is a date not a datetime
+        if type(time_min) != type(dtstart):
+            continue
         if time_min <= dtstart <= time_max:
             events.append(event)
     return events
 
 
-def create_event(calendar: caldav.Calendar, event_details: Event) -> caldav.Event:
+def create_day_event(calendar: caldav.Calendar, event_details: Event) -> caldav.Event:
+
+    # Convert string timestamps to date
+    dtstart = datetime.date.fromisoformat(event_details.start["date"])
+    dtend = datetime.date.fromisoformat(event_details.end["date"])
+
+    cal_event = calendar.add_event(
+        dtstart=dtstart,
+        dtend=dtend,
+        summary=event_details.summary,
+        description=event_details.description,
+        location=event_details.location,
+        color=NEXTCLOUD_COLORS[event_details.colorId],
+    )
+
+    creation_event_msg = f"Event created: {dtstart} {event_details.summary}"
+    print(color_text(creation_event_msg, "YELLOW"))
+    logger.warning(creation_event_msg)
+    return cal_event
+
+
+def create_timed_event(calendar: caldav.Calendar, event_details: Event) -> caldav.Event:
     tz = timezone("Europe/Paris")
 
     # Convert string timestamps to datetime
     dtstart = datetime.datetime.fromisoformat(
-        event_details.start.get("dateTime", event_details.start.get("date"))
+        event_details.start["dateTime"]
     ).astimezone(tz)
-    dtend = datetime.datetime.fromisoformat(
-        event_details.end.get("dateTime", event_details.end.get("date"))
-    ).astimezone(tz)
+    dtend = datetime.datetime.fromisoformat(event_details.end["dateTime"]).astimezone(
+        tz
+    )
 
     cal_event = calendar.add_event(
         dtstart=dtstart,
@@ -224,7 +282,7 @@ def create_event(calendar: caldav.Calendar, event_details: Event) -> caldav.Even
     return cal_event
 
 
-def update_event(
+def update_timed_event(
     new_event: Event,
     old_event: caldav.Event,
 ) -> None:
@@ -241,19 +299,18 @@ def update_event(
     dtstart = vevent.get("DTSTART").dt
     dtend = vevent.get("DTEND").dt
 
-    is_all_day = (
-        isinstance(dtstart, datetime.datetime)
-        and dtstart.time() == datetime.datetime.min.time()
-    )
     tz = timezone("Europe/Paris")
 
     # Convert string timestamps to datetime
-    newdtstart = datetime.datetime.fromisoformat(
-        new_event.start.get("dateTime", new_event.start.get("date"))
-    ).astimezone(tz)
-    newdtend = datetime.datetime.fromisoformat(
-        new_event.end.get("dateTime", new_event.end.get("date"))
-    ).astimezone(tz)
+    if new_event.is_all_day:
+        newdtstart = datetime.date.fromisoformat(new_event.start["date"])
+        newdtend = datetime.date.fromisoformat(new_event.end["date"])
+    else:
+        # fmt: off
+        newdtstart = datetime.datetime.fromisoformat(new_event.start["dateTime"]).astimezone(tz)
+        newdtend = datetime.datetime.fromisoformat(new_event.end["dateTime"]).astimezone(tz)
+        # fmt: on
+
     if (
         dtstart == newdtstart
         and dtend == newdtend
