@@ -36,6 +36,10 @@ def create_or_update_week_events_nextcloud() -> None:
     Reads command-line arguments, retrieves calendar data, and synchronizes events for the upcoming week.
     """
     arguments = read_arguments()
+    if arguments.no_nextcloud:
+        print("disabled nextcloud syncing")
+        return
+
     calpy_states = CalpyStates.from_arguments_and_config(arguments, agendas)
     if not isinstance(calpy_states.agenda, Agenda):
         print("Agenda should be set")

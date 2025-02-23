@@ -64,6 +64,14 @@ def read_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-n",
+        "--no_nextcloud",
+        default=False,
+        help="disable nextcloud syncing",
+        action="store_true",
+    )
+
+    parser.add_argument(
         "-v",
         "--view_content",
         default=True,
