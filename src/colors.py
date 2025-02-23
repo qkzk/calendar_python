@@ -13,13 +13,15 @@ TEXT_COLORS = {
 }
 
 
-def color_text(text: str, color: str = "BOLD") -> str:
+def color_text(text: str, *attrs: str) -> str:
     """
     Color a line for shell printing.
     The string is encapsulated and rest of line will have default format.
 
     @param text: (str) text to be printed
-    @param color: (str) used color or "BOLD"
+    @param attrs: (list[str]) used color or "BOLD" or "UNDERLINE".
     @returns: (str) formated string closed by an END tag.
     """
-    return TEXT_COLORS[color] + text + TEXT_COLORS["END"]
+    for attr in attrs:
+        text = TEXT_COLORS[attr.upper()] + text + TEXT_COLORS["END"]
+    return text

@@ -1,7 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import datetime, date
 
-from datetime import datetime
+import caldav
+from pytz import timezone
 
 
 @dataclass
@@ -108,3 +110,54 @@ class Event:
 
     def __eq__(self, other: Event) -> bool:
         return self.summary == other.summary
+
+    def nextcloud_dates(self) -> tuple[datetime | date, datetime | date]:
+        tz = timezone("Europe/Paris")
+
+        if self.is_all_day:
+            newdtstart = date.fromisoformat(self.start["date"])
+            newdtend = date.fromisoformat(self.end["date"])
+        else:
+            # fmt: off
+            newdtstart = datetime.fromisoformat(self.start["dateTime"]).astimezone(tz)
+            newdtend = datetime.fromisoformat(self.end["dateTime"]).astimezone(tz)
+            # fmt: on
+        return newdtstart, newdtend
+
+    def is_equal_nextcloud(self, other: caldav.Event) -> bool:
+        """
+        Compares a Calpy Event to a caldav.Event.
+
+        If they share every detail, they are equal.
+
+        Compared details:
+        - start
+        - end
+        - summary
+        - description
+        - location
+
+        @param other: (caldav.Event)
+        @return: (bool)
+        """
+        vevent = other.icalendar_component
+        if not vevent:
+            return False
+
+        otherstart = vevent.get("DTSTART").dt
+        otherend = vevent.get("DTEND").dt
+        summary = vevent.get("SUMMARY", "%")
+        summary = summary.to_ical().decode() if summary else summary
+        description = vevent.get("DESCRIPTION", "")
+        description = description.to_ical().decode() if description else description
+        location = vevent.get("LOCATION", "")
+        location = location.to_ical().decode() if location else location
+
+        selfstart, selfend = self.nextcloud_dates()
+        return (
+            otherstart == selfstart
+            and otherend == selfend
+            and summary == self.summary
+            and description == self.description
+            and location == self.location
+        )

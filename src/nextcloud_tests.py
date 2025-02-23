@@ -4,16 +4,16 @@ import re
 import caldav
 import icalendar
 
-from .model import Event
+from model import Event
 
-BASE_URL = "http://qkzk.ddns.net:81/remote.php/dav/"
+BASE_URL = "https://qkzk.ddns.net:444/remote.php/dav/"
 USERNAME = "qkzk"
 APP_PASSWORD_PATH = "/home/quentin/gclem/dev/python/boulot_utils/calpy_branches/tokens/quentin/nextcloud"
 
 
 def read_app_password():
     with open(APP_PASSWORD_PATH) as f:
-        return f.read().strip()
+        return f.readlines()[-1].strip()
 
 
 def create_nextcloud_client(app_password) -> caldav.DAVClient:
@@ -29,33 +29,32 @@ def get_calendars(client: caldav.DAVClient) -> list[caldav.Calendar]:
 def display_event(calendar: caldav.Calendar) -> None:
     events = calendar.events()
     for event in events:
+        print(event)
         ic = event.icalendar_instance
-        # print(event)
-        # print(ic)
+        print(ic)
         ica = ic.to_ical().decode("utf-8")
-
         print(ica)
-        vevent = event.icalendar_instance.subcomponents[0]
-        vevent["SUMMARY"] = "tata"
-        event.save(no_overwrite=False)
-        # calendar.save_event(ica)
-        # calendar.add_event(ic)
-        # calendar.add_event(ic)
-
-        # internal = caldav_event_to_internal(event)
-        # print(event.data)
-        # print(internal)
-        # back_to_caldav = internal_event_to_caldav(internal, calendar)
-        #
-        # print(back_to_caldav.data)
-    ev = calendar.save_event(
-        dtstart=datetime.datetime(2025, 2, 20, 12, 0),
-        dtend=datetime.datetime(2025, 2, 20, 13, 0),
-        summary="from python",
-        description="from python desc",
-        location="1 rue solférino, Lille 59000",
-    )
-    print(ev)
+    #     vevent = event.icalendar_instance.subcomponents[0]
+    #     vevent["SUMMARY"] = "tata"
+    #     event.save(no_overwrite=False)
+    #     # calendar.save_event(ica)
+    #     # calendar.add_event(ic)
+    #     # calendar.add_event(ic)
+    #
+    #     # internal = caldav_event_to_internal(event)
+    #     # print(event.data)
+    #     # print(internal)
+    #     # back_to_caldav = internal_event_to_caldav(internal, calendar)
+    #     #
+    #     # print(back_to_caldav.data)
+    # ev = calendar.save_event(
+    #     dtstart=datetime.datetime(2025, 2, 20, 12, 0),
+    #     dtend=datetime.datetime(2025, 2, 20, 13, 0),
+    #     summary="from python",
+    #     description="from python desc",
+    #     location="1 rue solférino, Lille 59000",
+    # )
+    # print(ev)
 
 
 def caldav_event_to_internal(event: caldav.Event) -> Event:

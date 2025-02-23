@@ -30,8 +30,12 @@ EXPLORING_MSG = """
 Starting to explore the given week... please wait...
 
 """
-CONFIRMATION_MSG = """
+CONFIRMATION_MSG_GOOGLE = """
 DONE ADDING THE EVENTS TO GOOGLE CALENDAR !
+
+"""
+CONFIRMATION_MSG_NEXTCLOUD = """
+DONE ADDING THE EVENTS TO NEXTCLOUD CALENDAR !
 
 """
 
@@ -95,7 +99,7 @@ def sync_events(agenda: Agenda, service: Resource, path_list: list[str]) -> None
 
         print(EXPLORING_MSG)
         sync_event_from_md(agenda, service, path)
-        print(color_text(CONFIRMATION_MSG, "DARKCYAN"))
+        print(color_text(CONFIRMATION_MSG_GOOGLE, "DARKCYAN"))
 
 
 if __name__ == "__main__":

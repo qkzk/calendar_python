@@ -224,7 +224,7 @@ def find_timed_event_matching_time(
 ) -> Optional[Event]:
     """
     Look for an event by given dates in calendar.
-    If one is found, return the event.
+    If one is found, returns the event.
     Else, return None.
 
     @param agenda: (Agenda) holds configured info about the agenda
