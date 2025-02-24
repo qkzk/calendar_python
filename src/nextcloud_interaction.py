@@ -420,7 +420,7 @@ def create_any_event(
         dtstart=dtstart,
         dtend=dtend,
         summary=event_details.summary,
-        description=event_details.description,
+        description=event_details.description_raw,
         location=event_details.location,
         color=NEXTCLOUD_COLORS[event_details.colorId],
     )
@@ -477,5 +477,5 @@ def update_old_components(old_event: caldav.Event, new_event: CalpyEvent):
     old_event.icalendar_component["dtstart"].dt = newdtstart
     old_event.icalendar_component["dtend"].dt = newdtend
     old_event.icalendar_component["summary"] = new_event.summary
-    old_event.icalendar_component["description"] = new_event.description
+    old_event.icalendar_component["description"] = new_event.description_raw
     old_event.icalendar_component["location"] = new_event.location

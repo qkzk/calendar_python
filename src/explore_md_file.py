@@ -421,13 +421,23 @@ def is_timed_event_summary(summary: str) -> bool:
     return summary[0].isdecimal()
 
 
-def parse_description(lines: list[str]) -> str:
+def parse_description(description_raw: str) -> str:
     """
     Extract a description from the list of strings, if any.
-    @param lines: (list[str]) lines describing an event
+    @param description_raw: (str) the description, not formated
     @return: (Optional[str]) the joined lines of the event.
     """
-    return format_html("\n".join(line.strip() for line in lines[1:] if line.strip()))
+    return format_html(description_raw)
+
+
+def parse_description_raw(lines: list[str]) -> str:
+    """
+    Join the lines into a multi lines string, skipping the first one.
+
+    @param lines: (list[str]) all the lines of the event
+    @return: (str) those lines separated by a \n
+    """
+    return "\n".join(line.strip() for line in lines[1:] if line.strip())
 
 
 def parse_event(
@@ -442,7 +452,9 @@ def parse_event(
     @return: (Event) Complete Event, ready to be pushed.
     """
     event_dict = parse_first_line(agenda, dt, lines[0].strip().split(" - "))
-    description = parse_description(lines)
+    description_raw = parse_description_raw(lines)
+    event_dict["description_raw"] = description_raw
+    description = parse_description(description_raw)
     if description is not None:
         event_dict["description"] = description
 

@@ -26,6 +26,7 @@ class Event:
     location: str
     summary: str
     description: str
+    description_raw: str
     colorId: str
     htmlLink: str
     is_all_day: bool
@@ -44,6 +45,7 @@ class Event:
             location=event_dict.get("location", ""),
             summary=event_dict["summary"],
             description=event_dict.get("description", ""),
+            description_raw=event_dict.get("description_raw", ""),
             colorId=event_dict.get("colorId", "11"),
             htmlLink=event_dict.get("htmlLink", ""),
             is_all_day=is_all_day,
@@ -59,6 +61,7 @@ class Event:
         assert isinstance(event.location, str)
         assert isinstance(event.summary, str)
         assert isinstance(event.description, str)
+        assert isinstance(event.description_raw, str)
         assert isinstance(event.colorId, str)
 
     def is_equal(self, event: Event) -> bool:
@@ -71,6 +74,10 @@ class Event:
             - summary,
             - description,
             - colorId
+
+        Comparison used in google calendar only.
+        The description is html formated while "description_raw" isn't.
+        Google Calendar supports html in its description while Nextcloud doesn't
         """
         return (
             self.start == event.start
@@ -134,7 +141,7 @@ class Event:
         - start
         - end
         - summary
-        - description
+        - description vs description_raw (not html formatted)
         - location
 
         @param other: (caldav.Event)
@@ -158,6 +165,6 @@ class Event:
             otherstart == selfstart
             and otherend == selfend
             and summary == self.summary
-            and description == self.description
+            and description == self.description_raw
             and location == self.location
         )
