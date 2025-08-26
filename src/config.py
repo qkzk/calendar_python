@@ -32,7 +32,7 @@ import yaml
 
 # What is the current year ?
 # school year, for 2023-2024 use 2023
-CURRENT_YEAR = 2024
+CURRENT_YEAR = 2025
 
 # Where are the .md files stored ?
 GIT_COURS_REPO_PATH = "/home/quentin/gdrive/cours/git_cours/cours/"
