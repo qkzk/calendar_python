@@ -57,6 +57,16 @@ def get_credentials(agenda: Agenda) -> Union[Credentials, Any]:
         # Save the credentials for the next run
         with open(f"tokens/{agenda.longname}/token.pickle", "wb") as token:
             pickle.dump(creds, token)
+    import sys
+
+    print(type(creds), file=sys.stderr)
+    print(dir(creds), file=sys.stderr)
+    print("expired", creds.expired, file=sys.stderr)
+    print("expiry", creds.expiry, file=sys.stderr)
+
+    # input("press enter... ")
+    # print(help(creds), file=sys.stderr)
+    # exit(2)
     return creds
 
 

@@ -43,11 +43,11 @@ def read_arguments() -> argparse.Namespace:
         usage="calpy -a q 1 35 36 -y",
     )
 
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_argument_group()
     group.add_argument(
         "-i", "--interactive", help="interactive mode", action="store_true"
     )
-    weeks = group.add_argument_group()
+    weeks = parser.add_argument_group()
 
     weeks.add_argument(
         "period_number",
