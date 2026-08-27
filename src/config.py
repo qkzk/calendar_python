@@ -45,9 +45,11 @@ TIMEZONE = "Europe/Paris"
 STUDENT_CLASS_COLORS = {
     "1": ["1NSI", "1ere NSI"],
     "2": ["ISN", "tale nsi", "tnsi"],
-    "3": ["SNT", "MIASHS"],
     "3": ["réunion", "reunion", "conseil", "PP", "default"],
     "4": ["l2s3", "l1s2", "l2s4", "l1s1", "croqmaths"],
+    "5": [
+        "L1 MIASHS G1",
+    ],
     "6": ["tmg2"],
     "7": ["imt", "CP2", "CP1"],
     "8": ["2nd", "train"],
